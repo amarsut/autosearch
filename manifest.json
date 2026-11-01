@@ -1,0 +1,51 @@
+﻿{
+  "manifest_version": 3,
+  "name": "AutoSearch - Bridge",
+  "version": "1.9",
+  "description": "Total integration mellan Planerare OS, fordonsregister och grossister.",
+  "icons": {
+    "128": "icon-192.png",
+    "192": "icon-192.png"
+  },
+  "permissions": [
+    "clipboardWrite",
+    "clipboardRead",
+    "storage",
+    "contextMenus",
+    "scripting"
+  ],
+  "host_permissions": [
+    "*://*.car.info/*",
+    "*://*.oljemagasinet.se/*",
+    "*://*.transportstyrelsen.se/*",
+    "*://*.trodo.se/*",
+    "*://*.superetka.com/*",
+    "https://api.ocr.space/*",
+    "<all_urls>"
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self';"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Fordonsuppslag"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["icon-192.png"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}
