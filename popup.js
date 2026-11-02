@@ -1,4 +1,4 @@
-﻿document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', () => {
     // ==========================================
     // 1. INITIALISERING & GLOBALA VARIABLER
     // ==========================================
@@ -208,25 +208,45 @@
         });
     }
 
+    const styleTrigger = document.getElementById('highlight-style-trigger');
+    const styleOptions = document.getElementById('highlight-style-options');
+    const stylePreview = document.getElementById('active-style-preview');
     const styleBtns = document.querySelectorAll('.style-list-item');
-    if (styleBtns.length > 0) {
-        // Läs in sparad stil från molnet/localstorage
+
+    if (styleTrigger && styleOptions && styleBtns.length > 0) {
         chrome.storage.local.get(['os_highlight_style'], (res) => {
             const activeStyle = res.os_highlight_style || 'saas';
             styleBtns.forEach(btn => {
-                if (btn.dataset.style === activeStyle) btn.classList.add('active');
-                else btn.classList.remove('active');
+                if (btn.dataset.style === activeStyle) {
+                    btn.classList.add('active');
+                    stylePreview.className = btn.dataset.class;
+                } else {
+                    btn.classList.remove('active');
+                }
             });
         });
 
-        // När du klickar på en ny stil i menyn
+        styleTrigger.addEventListener('click', (e) => {
+            e.stopPropagation();
+            styleOptions.classList.toggle('hidden');
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!styleOptions.contains(e.target) && e.target !== styleTrigger) {
+                styleOptions.classList.add('hidden');
+            }
+        });
+
         styleBtns.forEach(btn => {
             btn.addEventListener('click', (e) => {
-                e.stopPropagation(); // Stäng inte inställningsmenyn
+                e.stopPropagation();
                 styleBtns.forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
                 
                 const selectedStyle = btn.dataset.style;
+                stylePreview.className = btn.dataset.class; 
+                styleOptions.classList.add('hidden'); 
+                
                 chrome.storage.local.set({ 'os_highlight_style': selectedStyle });
                 showToast(`Stil sparad. Ladda om fliken för att se ändringen.`, 'success');
             });
