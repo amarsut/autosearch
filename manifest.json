@@ -1,4 +1,4 @@
-﻿{
+{
   "manifest_version": 3,
   "name": "AutoSearch - Bridge",
   "version": "1.9",
@@ -12,7 +12,8 @@
     "clipboardRead",
     "storage",
     "contextMenus",
-    "scripting"
+    "scripting",
+    "downloads"
   ],
   "host_permissions": [
     "*://*.car.info/*",
