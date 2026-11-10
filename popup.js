@@ -208,6 +208,17 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    const contextMenuModeSelect = document.getElementById('context-menu-mode-select');
+    if (contextMenuModeSelect) {
+        chrome.storage.local.get(['os_context_menu_mode'], (res) => {
+            contextMenuModeSelect.value = res.os_context_menu_mode || 'submenu';
+        });
+        contextMenuModeSelect.addEventListener('change', (e) => {
+            chrome.storage.local.set({ 'os_context_menu_mode': e.target.value });
+            showToast(e.target.value === 'direct' ? 'Högerklick: Direktklick' : 'Högerklick: Bridge-meny');
+        });
+    }
+
     const styleTrigger = document.getElementById('highlight-style-trigger');
     const styleOptions = document.getElementById('highlight-style-options');
     const stylePreview = document.getElementById('active-style-preview');
@@ -1810,10 +1821,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    chrome.storage.local.get(['pending_context_search', 'pending_image_scan'], async (res) => {
+    chrome.storage.local.get(['pending_context_search', 'pending_context_engine', 'pending_image_scan'], async (res) => {
         if (res.pending_context_search) {
-            chrome.storage.local.remove('pending_context_search');
-            setTimeout(() => { UI.regInput.value = res.pending_context_search; triggerSearch(STATE.defaultEngine); }, 100);
+            const targetEngine = res.pending_context_engine || STATE.defaultEngine;
+            chrome.storage.local.remove(['pending_context_search', 'pending_context_engine']);
+            setTimeout(() => { UI.regInput.value = res.pending_context_search; triggerSearch(targetEngine); }, 100);
         }
         if (res.pending_image_scan) {
             chrome.storage.local.remove('pending_image_scan');
@@ -1933,6 +1945,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 showToast('Inget giltigt reg-nr för värdering', 'error');
             }
         };
+    }
+
+    // --- Växla mellan Standard och Beta UI ---
+    const switchBetaBtn = document.getElementById('switch-beta-btn');
+    if (switchBetaBtn) {
+        switchBetaBtn.addEventListener('click', () => {
+            const isBeta = window.location.pathname.includes('beta.html');
+            const targetFile = isBeta ? 'popup.html' : 'beta.html';
+            chrome.action.setPopup({ popup: targetFile });
+            chrome.storage.local.set({ 'os_active_ui': targetFile }, () => {
+                window.location.href = targetFile;
+            });
+        });
     }
 
     // --- Ladda ner uppdatering från GitHub ---
