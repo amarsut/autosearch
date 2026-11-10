@@ -1,4 +1,4 @@
-﻿/**
+/**
  * PLANERARE // OS - EXTERNAL SCRAPER EXTENSION
  * Version: 6.2 (Refactored & Mobile Sync Safe)
  */
