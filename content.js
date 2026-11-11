@@ -19,6 +19,22 @@ class ScraperUtils {
         const m = text.match(regex);
         return m ? m[group].trim() : "";
     }
+    static formatPower(raw) {
+        if (!raw) return "";
+        const str = String(raw);
+        const kwMatch = str.match(/(\d+(?:[.,]\d+)?)\s*kw/i);
+        const hkMatch = str.match(/(\d+)\s*(?:hk|hp|ps|hästkrafter)/i);
+        if (kwMatch && hkMatch) return `${Math.round(parseFloat(kwMatch[1].replace(',', '.')))} kW / ${hkMatch[1]} hk`;
+        if (kwMatch) {
+            const kw = parseFloat(kwMatch[1].replace(',', '.'));
+            return `${Math.round(kw)} kW / ${Math.round(kw * 1.35962)} hk`;
+        }
+        if (hkMatch) {
+            const hk = parseInt(hkMatch[1], 10);
+            return `${Math.round(hk / 1.35962)} kW / ${hk} hk`;
+        }
+        return str.trim();
+    }
     // NYTT: Bombsäker funktion som "dammsuger" runt ordet skatt
     static extractTax(text) {
         const clean = text.replace(/&nbsp;|\u00A0|\u202F/g, ' '); 
@@ -210,7 +226,7 @@ const closeExtensionTask = (payload, widget, successMsg, triggerEvent) => {
                 window.opener.postMessage(payload, "*");
             }
             if (widget) widget.success(successMsg);
-            setTimeout(() => chrome.runtime.sendMessage({ action: 'CLOSE_WINDOW' }), 500);
+            setTimeout(() => chrome.runtime.sendMessage({ action: 'CLOSE_WINDOW' }), 60);
         });
     });
 };
@@ -223,6 +239,10 @@ const abortExtensionTask = (widget, errorMsg, delay = 3000) => {
 chrome.storage.local.get(['os_external_task'], (res) => {
     const t = res.os_external_task;
     if (!t) return;
+    if (t.ts && (Date.now() - t.ts > 30000)) {
+        chrome.storage.local.remove('os_external_task');
+        return;
+    }
     if (HOST.includes('car.info') && t.target === 'ci') startCarInfoRadar(t.regnr);
     else if (HOST.includes('oljemagasinet.se') && t.target === 'om') startOMRadar(t.regnr);
     else if (HOST.includes('transportstyrelsen.se') && t.target === 'ts') startTSRadar(t.regnr);
@@ -249,11 +269,10 @@ async function startCarInfoRadar(activeReg) {
     window.osRadarActive = true;
     const widget = new RadarWidget('Datalänk Aktiv', 'Laddar Car.info...', 'blue');
 
-    // Hämta detaljerad värdering (Företag/Privat + precision) i bakgrunden
+    // Hämta detaljerad värdering (Företag/Privat + precision) som ett rent Promise
     let advValuation = null;
-    let advValuationFetched = false;
     
-    fetch(`https://www.car.info/sv-se/valuation/S/${activeReg}`)
+    const valuationPromise = fetch(`https://www.car.info/sv-se/valuation/S/${activeReg}`)
         .then(r => r.text())
         .then(html => {
             const doc = new DOMParser().parseFromString(html, 'text/html');
@@ -307,9 +326,8 @@ async function startCarInfoRadar(activeReg) {
                     pLight: pLight  
                 };
             }
-            advValuationFetched = true;
         })
-        .catch(() => { advValuationFetched = true; });
+        .catch(() => {});
 
     try {
         // 1. Klicka bort cookies DIREKT! (Om de ligger som ett överlägg stoppar de laddningen)
@@ -327,17 +345,16 @@ async function startCarInfoRadar(activeReg) {
             }
         });
 
-        // 4. VÄNTA PÅ AJAX/NÄTVERK: Vi väntar upp till 3 sekunder tills "Motorkod" faktiskt har laddats in på skärmen!
-        await ScraperUtils.waitForCondition(() => {
-            return document.body.innerText.includes('Motorkod') || document.body.innerText.includes('Motorolja');
-        }, 3000).catch(() => {});
-
-        // 5. SÄKERHETSSPÄRR FÖR VÄRDERINGEN
-        let valWaits = 0;
-        while (!advValuationFetched && valWaits < 7) {
-            await new Promise(res => setTimeout(res, 200));
-            valWaits++;
-        }
+        // 4. VÄNTA PARALLELLT PÅ AJAX/NÄTVERK OCH VÄRDERING (Noll dödtid)
+        await Promise.all([
+            ScraperUtils.waitForCondition(() => {
+                return document.body.innerText.includes('Motorkod') || document.body.innerText.includes('Motorolja');
+            }, 3000).catch(() => {}),
+            Promise.race([
+                valuationPromise,
+                new Promise(res => setTimeout(res, 1400))
+            ])
+        ]);
 
     } catch (e) {
         console.warn("Car.info timeout, försöker skrapa det vi har...");
@@ -431,18 +448,18 @@ async function startCarInfoRadar(activeReg) {
         else if (drivhjul.toLowerCase().includes('bak') || drivhjul.toUpperCase() === 'RWD') drivhjul = 'RWD';
     }
 
-    // 5. BESIKTNING
+    // 5. BESIKTNING (Optimerad bladnods-sökning)
+    const ciLeafNodes = Array.from(document.querySelectorAll('.featured_info_item *, .sprow *, td, span, div')).filter(el => el.children.length === 0 && el.textContent);
     let besiktning = "";
-    const elements = Array.from(document.querySelectorAll('*')).filter(el => 
-        el.children.length === 0 && (el.textContent || "").trim() === "Besiktas senast"
-    );
-    for (let el of elements) {
-        let container = el.closest('.featured_info_item') || el.parentElement;
-        if (container) {
-            let match = container.textContent.match(/(\d{4}-\d{2}-\d{2})/);
-            if (match) {
-                besiktning = match[1];
-                break;
+    for (let el of ciLeafNodes) {
+        if (el.textContent.trim() === "Besiktas senast") {
+            let container = el.closest('.featured_info_item') || el.parentElement;
+            if (container) {
+                let match = container.textContent.match(/(\d{4}-\d{2}-\d{2})/);
+                if (match) {
+                    besiktning = match[1];
+                    break;
+                }
             }
         }
     }
@@ -467,11 +484,10 @@ async function startCarInfoRadar(activeReg) {
     }
 
     // 9. FORDONSSKATT
+    // 9. FORDONSSKATT
     let årsskatt = ScraperUtils.extractTax(combinedText);
     if (!årsskatt) {
-        const skattNodes = Array.from(document.querySelectorAll('*')).filter(el => 
-            el.children.length === 0 && /(?:årsskatt|fordonsskatt|skatt)/i.test(el.textContent)
-        );
+        const skattNodes = ciLeafNodes.filter(el => /(?:årsskatt|fordonsskatt|skatt)/i.test(el.textContent));
         for (let node of skattNodes) {
             let parentText = (node.parentElement || node).textContent.replace(/\s+/g, ' ');
             let m = parentText.match(/(\d{1,2}(?:[\s\u00A0]?\d{3})*|\d{3,5})\s*(?:kr|sek)/i);
@@ -487,8 +503,14 @@ async function startCarInfoRadar(activeReg) {
     const brukare = brukareMatch ? brukareMatch + " st" : "";
 
     let miltal = "";
-    const milMatch = combinedText.match(/(?:Mätarställning|Miltal|Senaste mätarställning|Odometer)[\s\S]{0,100}?(\d{1,3}(?:[ \u00A0.,]\d{3})+|\d{1,7})\s*(mil|km)/i);
-    if (milMatch) miltal = milMatch[1].replace(/[^\d]/g, '') + ' ' + milMatch[2].toLowerCase();
+    const rawSpecMil = ciSpecs['mätarställning'] || ciSpecs['miltal'] || "";
+    const specMilMatch = rawSpecMil.match(/(\d{1,3}(?:[ \u00A0.,]\d{3})+|\d{1,7})\s*(mil|km)/i);
+    if (specMilMatch) {
+        miltal = specMilMatch[1].replace(/[^\d]/g, '') + ' ' + specMilMatch[2].toLowerCase();
+    } else {
+        const milMatch = combinedText.match(/(?:Mätarställning|Miltal|Senaste mätarställning|Odometer)[\s\S]{0,60}?(\d{1,3}(?:[ \u00A0.,]\d{3})+|\d{1,7})\s*(mil|km)/i);
+        if (milMatch) miltal = milMatch[1].replace(/[^\d]/g, '') + ' ' + milMatch[2].toLowerCase();
+    }
 
     let status = ScraperUtils.extractMatch(combinedText, /\b(Avställd|I trafik|Påställd|Avregistrerad|Canceled|In traffic|Deregistered)\b/i).toLowerCase();
     if (status) status = (status === 'i trafik' || status === 'in traffic') ? 'Påställd' : (status === 'canceled' || status === 'deregistered') ? 'Avställd' : status.charAt(0).toUpperCase() + status.slice(1);
@@ -660,7 +682,9 @@ async function startOMRadar(activeReg, triggerEvent = null) {
         const volym = volymMatch[1].replace(',', '.').trim();
 
         // NYTT: Ge Oljemagasinet en halv sekund att rendera klart märke, motorkod och ch.nr!
-        await new Promise(res => setTimeout(res, 500));
+        await ScraperUtils.waitForCondition(() => {
+            return document.querySelector('.vehicle-header span.font-bold') || /Motorkod:/i.test(document.body.innerText);
+        }, 500).catch(() => {});
 
         let motorkod = "", arsmodell = "", bilmodell = "", drivmedel = "", vaxellada = "", effekt = "", oljetyp = "", vin = "";
         
@@ -704,29 +728,18 @@ async function startOMRadar(activeReg, triggerEvent = null) {
             let vinMatchRegex = fullText.match(/Chassinummer[\s:]*([A-HJ-NPR-Z0-9]{17})/i);
             if (vinMatchRegex) vin = vinMatchRegex[1].toUpperCase();
 
-            document.querySelectorAll('div').forEach(el => {
-                const label = el.textContent.trim().toLowerCase();
+            document.querySelectorAll('th, td.label, div').forEach(el => {
+                if (el.children.length > 2) return;
                 const nextEl = el.nextElementSibling;
-                
-                if (nextEl) {
-                    const val = nextEl.textContent.trim();
-                    if (label === 'motorkod' && !motorkod) motorkod = val.toUpperCase();
-                    if (label === 'växellåda' && !vaxellada) vaxellada = val;
-                    if (label === 'effekt' && !effekt) effekt = val;
-                    if (label === 'chassinummer' && !vin && /^[A-HJ-NPR-Z0-9]{17}$/i.test(val)) vin = val.toUpperCase();
-                }
-            });
+                if (!nextEl) return;
+                const label = el.textContent.trim().toLowerCase();
+                const val = nextEl.textContent.trim();
+                if (!val) return;
 
-            document.querySelectorAll('th, td.label').forEach(th => {
-                const thText = th.textContent.trim().toLowerCase();
-                const nextTd = th.nextElementSibling;
-                if (nextTd && (nextTd.tagName.toLowerCase() === 'td' || nextTd.classList.contains('value'))) {
-                    const val = nextTd.textContent.trim();
-                    if (!motorkod && thText.includes('motorkod')) motorkod = val;
-                    if (!vaxellada && thText.includes('växellåda')) vaxellada = val;
-                    if (!effekt && thText.includes('effekt')) effekt = val;
-                    if (!vin && thText.includes('chassi')) vin = val.toUpperCase();
-                }
+                if (!motorkod && (label === 'motorkod' || label.includes('motorkod'))) motorkod = val.toUpperCase();
+                else if (!vaxellada && (label === 'växellåda' || label.includes('växellåda'))) vaxellada = val;
+                else if (!effekt && (label === 'effekt' || label.includes('effekt'))) effekt = val;
+                else if (!vin && (label === 'chassinummer' || label.includes('chassi')) && /^[A-HJ-NPR-Z0-9]{17}$/i.test(val)) vin = val.toUpperCase();
             });
 
         } catch (e) { console.error("Fel vid extrahering av Oljemagasinet:", e); }
@@ -804,25 +817,21 @@ async function startTSRadar(activeReg, triggerEvent = null) {
         await new Promise(res => setTimeout(res, 100)); // Låt renderingen rulla ut
         openPanels();
 
-        // NY OCH TRÄFFSÄKER DOM-EXTRAKTOR FÖR TRANSPORTSTYRELSEN
+        // NY OCH TRÄFFSÄKER DOM-EXTRAKTOR FÖR TRANSPORTSTYRELSEN (Cachad strong-lista)
+                const allStrongs = Array.from(document.querySelectorAll('strong'));
                 const extractDOM = (labels) => {
                     const labelArray = Array.isArray(labels) ? labels : [labels];
-                    const strongs = Array.from(document.querySelectorAll('strong')); 
                     for (let lbl of labelArray) {
-                        const target = strongs.find(el => {
+                        const target = allStrongs.find(el => {
                             const text = el.textContent.replace(/\u00A0/g, ' ').trim().toLowerCase();
                             return text === lbl.toLowerCase() || text.startsWith(lbl.toLowerCase());
                         });
                         if (target) {
-                            let parent = target.closest('p');
-                            if (!parent) parent = target.parentElement; 
+                            let parent = target.closest('p') || target.parentElement; 
                             if (parent) {
                                 let clone = parent.cloneNode(true);
-                                let strongToRemove = clone.querySelector('strong');
-                                if(strongToRemove) strongToRemove.remove();
+                                clone.querySelector('strong')?.remove();
                                 clone.querySelectorAll('a, i, button, span.visually-hidden').forEach(el => el.remove());
-                                
-                                // Raderar citattecknen (" ")
                                 let text = clone.textContent.replace(/["']/g, '').trim();
                                 if (text) return text;
                             }
@@ -895,7 +904,6 @@ async function startTSRadar(activeReg, triggerEvent = null) {
 
                 // --- Förbrukning ---
                 let forbrukning = "";
-                const allStrongs = Array.from(document.querySelectorAll('strong')); 
                 const blandadNodes = allStrongs.filter(el => el.textContent.trim().toLowerCase() === 'blandad körning');
                 for (let node of blandadNodes) {
                     let parent = node.closest('p') || node.parentElement;
@@ -984,23 +992,20 @@ async function startBURadar(activeReg) {
             
             if (btnClicked) {
                 widget.updateText('Laddar motorkod...');
-                await new Promise(res => setTimeout(res, 1200)); // Ge servern 1.2 sek att svara
+                await ScraperUtils.waitForCondition(() => {
+                    return !document.body.innerText.includes('Hämta motorkod');
+                }, 1400).catch(() => {});
             }
         } catch(e) {}
 
-        // 2. Koden pausar asynkront här och hugger exakt när texten laddats in!
+        // 2. Vänta på grunddata och ge Bilhandlarpris max 400 ms extra om det inte redan laddats samtidigt
         await ScraperUtils.waitForCondition(() => {
             const visibleText = document.body.innerText;
             return visibleText.includes('Modellår') || visibleText.includes('Status') || visibleText.includes('Mätarställning');
         }, 15000);
 
-        // FIX: Biluppgifter laddar ibland in "Bilhandlarpris" (Värdering) asynkront precis efter huvudtexten.
-        // Vi ger den upp till 800 millisekunder på sig att rita ut priset. Om det dyker upp hugger vi det direkt,
-        // om det inte dyker upp (vissa bilar saknar pris) går koden vidare automatiskt utan att krascha!
-        try {
-            await ScraperUtils.waitForCondition(() => document.body.innerText.includes('Bilhandlarpris'), 800);
-        } catch (e) {
-            // Finns inget pris, vi kör på med det vi har!
+        if (!document.body.innerText.includes('Bilhandlarpris')) {
+            await ScraperUtils.waitForCondition(() => document.body.innerText.includes('Bilhandlarpris'), 400).catch(() => {});
         }
 
         widget.updateText('Extraherar data...');
@@ -1145,20 +1150,20 @@ if (!HOST.includes('oljemagasinet.se') && !HOST.includes('car.info') && !HOST.in
         style.id = 'bmg-highlight-styles';
         style.textContent = `
             /* 1. SaaS Badge */
-            .bmg-style-saas { background-color: rgba(249, 115, 22, 0.15) !important; color: #f97316 !important; border: 1px solid rgba(249, 115, 22, 0.3) !important; border-radius: 6px !important; padding: 1px 6px !important; font-weight: 700 !important; letter-spacing: 0.5px !important; cursor: pointer !important; transition: all 0.2s ease !important; display: inline-block !important; pointer-events: auto !important; margin: 0 2px !important; }
-            .bmg-style-saas:hover { background-color: #f97316 !important; color: #ffffff !important; }
+            body[data-bmg-style="saas"] .bmg-reg-highlight, .bmg-style-saas { background-color: rgba(249, 115, 22, 0.15) !important; color: #f97316 !important; border: 1px solid rgba(249, 115, 22, 0.3) !important; border-radius: 6px !important; padding: 1px 6px !important; font-weight: 700 !important; letter-spacing: 0.5px !important; cursor: pointer !important; transition: all 0.2s ease !important; display: inline-block !important; pointer-events: auto !important; margin: 0 2px !important; }
+            body[data-bmg-style="saas"] .bmg-reg-highlight:hover, .bmg-style-saas:hover { background-color: #f97316 !important; color: #ffffff !important; }
             
             /* 2. Underline Reveal */
-            .bmg-style-underline { background-color: transparent !important; color: inherit !important; border-bottom: 2px solid #f97316 !important; padding: 0 2px !important; font-weight: 800 !important; cursor: pointer !important; transition: all 0.2s ease-out !important; display: inline-block !important; pointer-events: auto !important; box-shadow: inset 0 0 0 rgba(249, 115, 22, 0) !important; }
-            .bmg-style-underline:hover { box-shadow: inset 0 -24px 0 rgba(249, 115, 22, 0.15) !important; color: #f97316 !important; }
+            body[data-bmg-style="underline"] .bmg-reg-highlight, .bmg-style-underline { background-color: transparent !important; color: inherit !important; border-bottom: 2px solid #f97316 !important; padding: 0 2px !important; font-weight: 800 !important; cursor: pointer !important; transition: all 0.2s ease-out !important; display: inline-block !important; pointer-events: auto !important; box-shadow: inset 0 0 0 rgba(249, 115, 22, 0) !important; }
+            body[data-bmg-style="underline"] .bmg-reg-highlight:hover, .bmg-style-underline:hover { box-shadow: inset 0 -24px 0 rgba(249, 115, 22, 0.15) !important; color: #f97316 !important; }
             
             /* 3. Diskret Ram (Ghost) */
-            .bmg-style-ghost { background-color: transparent !important; color: inherit !important; border: 1px dashed #f97316 !important; border-radius: 4px !important; padding: 1px 5px !important; font-weight: 700 !important; cursor: pointer !important; transition: all 0.2s ease !important; display: inline-block !important; pointer-events: auto !important; margin: 0 2px !important; }
-            .bmg-style-ghost:hover { background-color: rgba(249, 115, 22, 0.1) !important; border-style: solid !important; color: #f97316 !important; }
+            body[data-bmg-style="ghost"] .bmg-reg-highlight, .bmg-style-ghost { background-color: transparent !important; color: inherit !important; border: 1px dashed #f97316 !important; border-radius: 4px !important; padding: 1px 5px !important; font-weight: 700 !important; cursor: pointer !important; transition: all 0.2s ease !important; display: inline-block !important; pointer-events: auto !important; margin: 0 2px !important; }
+            body[data-bmg-style="ghost"] .bmg-reg-highlight:hover, .bmg-style-ghost:hover { background-color: rgba(249, 115, 22, 0.1) !important; border-style: solid !important; color: #f97316 !important; }
             
             /* 4. Sidomarkör (Accent) - Med adaptiv ram */
-            .bmg-style-accent { background-color: transparent !important; color: inherit !important; border: 1px solid rgba(148, 163, 184, 0.4) !important; border-left: 3px solid #f97316 !important; border-radius: 4px !important; padding: 1px 5px 1px 6px !important; font-weight: 700 !important; cursor: pointer !important; transition: all 0.2s ease !important; display: inline-block !important; pointer-events: auto !important; margin: 0 2px !important; box-shadow: 0 1px 2px rgba(0,0,0,0.05) !important; }
-            .bmg-style-accent:hover { background-color: rgba(249, 115, 22, 0.15) !important; color: #f97316 !important; border-color: rgba(249, 115, 22, 0.4) !important; border-left-color: #ea580c !important; }
+            body[data-bmg-style="accent"] .bmg-reg-highlight, .bmg-style-accent { background-color: transparent !important; color: inherit !important; border: 1px solid rgba(148, 163, 184, 0.4) !important; border-left: 3px solid #f97316 !important; border-radius: 4px !important; padding: 1px 5px 1px 6px !important; font-weight: 700 !important; cursor: pointer !important; transition: all 0.2s ease !important; display: inline-block !important; pointer-events: auto !important; margin: 0 2px !important; box-shadow: 0 1px 2px rgba(0,0,0,0.05) !important; }
+            body[data-bmg-style="accent"] .bmg-reg-highlight:hover, .bmg-style-accent:hover { background-color: rgba(249, 115, 22, 0.15) !important; color: #f97316 !important; border-color: rgba(249, 115, 22, 0.4) !important; border-left-color: #ea580c !important; }
 
             /* 5. Exakt 1:1 klon av Chromes inbyggda högerklicksmeny */
             #bmg-hover-bridge { position: fixed; z-index: 2147483647; min-width: 286px; background: #1f1f1f; border: none; border-radius: 12px; padding: 8px 0; box-shadow: 0 10px 28px rgba(0, 0, 0, 0.52), 0 2px 8px rgba(0, 0, 0, 0.28); font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; opacity: 0; pointer-events: none; transform: translateY(-2px); transition: opacity 0.1s ease, transform 0.1s ease; box-sizing: border-box; user-select: none; }
@@ -1173,11 +1178,30 @@ if (!HOST.includes('oljemagasinet.se') && !HOST.includes('car.info') && !HOST.in
         document.head.appendChild(style);
     }
 
-    let highlightInterval = null, isHighlightEnabled = true, isHoverMenuEnabled = true, currentHighlightStyle = 'saas';
-    let hoverBridgeEl = null, hoverHideTimer = null, hoverShowTimer = null, activeHoverReg = '';
+    let highlightObserver = null, isHighlightEnabled = true, isHoverMenuEnabled = true, currentHighlightStyle = 'saas';
+    let hoverBridgeHost = null, hoverBridgeEl = null, hoverHideTimer = null, hoverShowTimer = null, activeHoverReg = '';
 
     function getHoverBridge() {
         if (hoverBridgeEl) return hoverBridgeEl;
+
+        hoverBridgeHost = document.createElement('div');
+        hoverBridgeHost.id = 'bmg-hover-bridge-host';
+        hoverBridgeHost.style.cssText = 'position: fixed; inset: 0; pointer-events: none; z-index: 2147483647;';
+        const shadow = hoverBridgeHost.attachShadow({ mode: 'open' });
+
+        const shadowStyle = document.createElement('style');
+        shadowStyle.textContent = `
+            #bmg-hover-bridge { position: fixed; z-index: 2147483647; min-width: 286px; background: #1f1f1f; border: none; border-radius: 12px; padding: 8px 0; box-shadow: 0 10px 28px rgba(0, 0, 0, 0.52), 0 2px 8px rgba(0, 0, 0, 0.28); font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; opacity: 0; pointer-events: none; transform: translateY(-2px); transition: opacity 0.1s ease, transform 0.1s ease; box-sizing: border-box; user-select: none; }
+            #bmg-hover-bridge::after { content: ''; position: absolute; top: -10px; left: 0; right: 0; height: 10px; }
+            #bmg-hover-bridge.visible { opacity: 1; pointer-events: auto; transform: translateY(0); }
+            .bmg-hb-btn { width: calc(100% - 12px); margin: 0 6px; display: flex; align-items: center; background: transparent; border: none; border-radius: 6px; color: #e3e3e3; font-size: 13px; font-weight: 400; padding: 7px 14px; cursor: default; text-align: left; box-sizing: border-box; line-height: 1.35; white-space: nowrap; letter-spacing: 0.1px; font-family: inherit; }
+            .bmg-hb-btn:hover { background: #37393b; color: #ffffff; }
+            .bmg-hb-left { display: inline-flex; align-items: center; gap: 11px; }
+            .bmg-hb-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; display: inline-block; }
+            .bmg-hb-reg-inline { color: inherit; font-weight: 400; }
+            .bmg-hb-sep { height: 1px; background: #3c4043; margin: 7px 0; }
+        `;
+
         hoverBridgeEl = document.createElement('div');
         hoverBridgeEl.id = 'bmg-hover-bridge';
         hoverBridgeEl.innerHTML = `
@@ -1198,12 +1222,15 @@ if (!HOST.includes('oljemagasinet.se') && !HOST.includes('car.info') && !HOST.in
                 <span class="bmg-hb-left"><span class="bmg-hb-dot" style="background:#ffffff;"></span><span>Öppna Biluppgifter direkt: '<span class="bmg-hb-reg-inline" data-reg></span>'</span></span>
             </button>
         `;
+
+        shadow.appendChild(shadowStyle);
+        shadow.appendChild(hoverBridgeEl);
+
         hoverBridgeEl.addEventListener('mouseenter', () => clearTimeout(hoverHideTimer));
         hoverBridgeEl.addEventListener('mouseleave', () => {
-            hoverHideTimer = setTimeout(() => hoverBridgeEl.classList.remove('visible'), 150);
+            hoverHideTimer = setTimeout(() => hoverBridgeEl.classList.remove('visible'), 220);
         });
 
-        // Stäng direkt om användaren scrollar sidan eller i någon underliggande container
         const hideOnScroll = () => {
             clearTimeout(hoverShowTimer);
             if (hoverBridgeEl && hoverBridgeEl.classList.contains('visible')) {
@@ -1213,14 +1240,6 @@ if (!HOST.includes('oljemagasinet.se') && !HOST.includes('car.info') && !HOST.in
         window.addEventListener('scroll', hideOnScroll, { capture: true, passive: true });
         window.addEventListener('wheel', hideOnScroll, { passive: true });
         window.addEventListener('touchmove', hideOnScroll, { passive: true });
-
-        // Stäng på ESC
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && hoverBridgeEl && hoverBridgeEl.classList.contains('visible')) {
-                clearTimeout(hoverShowTimer);
-                hoverBridgeEl.classList.remove('visible');
-            }
-        });
 
         hoverBridgeEl.querySelectorAll('.bmg-hb-btn').forEach(btn => {
             btn.addEventListener('mousedown', (e) => {
@@ -1253,7 +1272,7 @@ if (!HOST.includes('oljemagasinet.se') && !HOST.includes('car.info') && !HOST.in
                 }
             });
         });
-        document.body.appendChild(hoverBridgeEl);
+        document.documentElement.appendChild(hoverBridgeHost);
         return hoverBridgeEl;
     }
 
@@ -1299,15 +1318,45 @@ if (!HOST.includes('oljemagasinet.se') && !HOST.includes('car.info') && !HOST.in
         }, 120);
     }
 
-    function highlightRegNumbers() {
-        if (!isHighlightEnabled) return;
+    const SKIP_TAGS = new Set(['SCRIPT', 'STYLE', 'NOSCRIPT', 'TEXTAREA', 'INPUT', 'BUTTON', 'SELECT', 'OPTION', 'SVG', 'CODE', 'PRE', 'HEAD']);
+
+    function highlightRegNumbers(rootNode = document.body) {
+        if (!isHighlightEnabled || !rootNode) return;
+
+        // Om en enskild textnod skickas in från MutationObserver, gå upp till föräldern
+        if (rootNode.nodeType === 3) rootNode = rootNode.parentElement;
+        if (!rootNode || SKIP_TAGS.has(rootNode.tagName) || rootNode.isContentEditable || rootNode.closest?.('#bmg-hover-bridge, .bmg-reg-highlight')) return;
+
         const regex = /\b(?!(?:SEK|EUR|USD)\s?)[A-Z]{3}\s?[0-9]{2}[A-Z0-9]\b(?!\s*(?:kr|:-|\.\d|,\d))/g;
-        const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null, false);
+        const walker = document.createTreeWalker(
+            rootNode,
+            NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT,
+            {
+                acceptNode(node) {
+                    if (node.nodeType === 1) {
+                        if (
+                            SKIP_TAGS.has(node.tagName) ||
+                            node.isContentEditable ||
+                            node.id === 'bmg-hover-bridge' ||
+                            node.id === 'os-radar-host' ||
+                            node.classList?.contains('bmg-reg-highlight')
+                        ) {
+                            return NodeFilter.FILTER_REJECT; // Hoppar över hela underträdet direkt!
+                        }
+                        return NodeFilter.FILTER_SKIP; // Gå vidare till barnnoderna
+                    }
+                    // Snabb längdkoll före Regex (ett reg-nr är minst 6 tecken)
+                    const val = node.nodeValue;
+                    if (!val || val.length < 6) return NodeFilter.FILTER_SKIP;
+                    regex.lastIndex = 0;
+                    return regex.test(val) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP;
+                }
+            }
+        );
+
         let node, nodesToReplace = [];
-        
         while (node = walker.nextNode()) {
-            const p = node.parentElement;
-            if (p && !['SCRIPT', 'STYLE', 'NOSCRIPT', 'TEXTAREA', 'INPUT', 'BUTTON'].includes(p.tagName) && !p.classList.contains('bmg-reg-highlight') && !p.closest('#bmg-hover-bridge') && !p.isContentEditable && regex.test(node.nodeValue)) nodesToReplace.push(node);
+            nodesToReplace.push(node);
         }
         
         nodesToReplace.forEach(textNode => {
@@ -1318,24 +1367,153 @@ if (!HOST.includes('oljemagasinet.se') && !HOST.includes('car.info') && !HOST.in
                 
                 const span = document.createElement('span'); 
                 const cleanReg = match[0].replace(/\s/g, '').toUpperCase();
-                span.className = `bmg-reg-highlight bmg-style-${currentHighlightStyle}`;
-                span.textContent = match[0]; 
-                
-                span.addEventListener('mouseenter', () => showHoverBridge(span, cleanReg));
-                span.addEventListener('mouseleave', () => {
-                    clearTimeout(hoverShowTimer);
-                    hoverHideTimer = setTimeout(() => { if (hoverBridgeEl) hoverBridgeEl.classList.remove('visible'); }, 180);
-                });
-                span.addEventListener('mousedown', (e) => {
-                    clearTimeout(hoverShowTimer);
-                    if (hoverBridgeEl) hoverBridgeEl.classList.remove('visible');
-                    if (e.button === 0) { e.preventDefault(); e.stopPropagation(); chrome.runtime.sendMessage({ action: 'OPEN_POPUP_FOR_REG', regnr: cleanReg }); }
-                    else if (e.button === 2) { const sel = window.getSelection(), range = document.createRange(); range.selectNodeContents(span); sel.removeAllRanges(); sel.addRange(range); }
-                });
-                span.addEventListener('contextmenu', e => e.stopPropagation());
+                span.className = 'bmg-reg-highlight';
+                span.dataset.reg = cleanReg;
+                span.textContent = match[0];
                 fragment.appendChild(span); lastIndex = regex.lastIndex;
             }
             if (matched) { fragment.appendChild(document.createTextNode(text.substring(lastIndex))); if (textNode.parentNode) textNode.parentNode.replaceChild(fragment, textNode); }
+        });
+    }
+
+    let currentHoveredSpan = null;
+
+    document.addEventListener('mouseover', (e) => {
+        const span = e.target.closest?.('.bmg-reg-highlight');
+        if (span && span !== currentHoveredSpan) {
+            currentHoveredSpan = span;
+            showHoverBridge(span, span.dataset.reg);
+        }
+    }, { passive: true });
+
+    document.addEventListener('mouseout', (e) => {
+        if (!currentHoveredSpan) return;
+        const related = e.relatedTarget;
+        if (related && (currentHoveredSpan.contains(related) || related === hoverBridgeHost || related.closest?.('#bmg-hover-bridge'))) return;
+        currentHoveredSpan = null;
+        clearTimeout(hoverShowTimer);
+        hoverHideTimer = setTimeout(() => {
+            if (hoverBridgeEl) hoverBridgeEl.classList.remove('visible');
+        }, 220);
+    }, { passive: true });
+
+    document.addEventListener('mousedown', (e) => {
+        const span = e.target.closest?.('.bmg-reg-highlight');
+        if (!span) return;
+        const cleanReg = span.dataset.reg;
+        clearTimeout(hoverShowTimer);
+        clearTimeout(hoverHideTimer);
+        if (hoverBridgeEl) hoverBridgeEl.classList.remove('visible');
+        if (e.button === 0) {
+            e.preventDefault();
+            e.stopPropagation();
+            chrome.runtime.sendMessage({ action: 'OPEN_POPUP_FOR_REG', regnr: cleanReg });
+        } else if (e.button === 2) {
+            const sel = window.getSelection();
+            const range = document.createRange();
+            range.selectNodeContents(span);
+            sel.removeAllRanges();
+            sel.addRange(range);
+        }
+    }, true);
+
+    document.addEventListener('contextmenu', (e) => {
+        if (e.target.closest?.('.bmg-reg-highlight')) e.stopPropagation();
+    }, true);
+
+    let pendingNodes = new Set();
+    let highlightScheduled = false;
+
+    const viewportObserver = new IntersectionObserver((entries, obs) => {
+        for (const entry of entries) {
+            if (entry.isIntersecting) {
+                obs.unobserve(entry.target);
+                highlightRegNumbers(entry.target);
+            }
+        }
+    }, { rootMargin: '400px 0px' }); // Förladdar 400px innan raden når skärmkanten 
+
+    function flushHighlightQueue() {
+        highlightScheduled = false;
+        if (!isHighlightEnabled) {
+            pendingNodes.clear();
+            return;
+        }
+        const nodes = Array.from(pendingNodes);
+        pendingNodes.clear();
+
+        for (const node of nodes) {
+            if (!node.isConnected) continue;
+            // Hoppa över noder om en förälder redan ligger i samma batch
+            let parent = node.parentElement;
+            let coveredByAncestor = false;
+            while (parent) {
+                if (nodes.includes(parent)) {
+                    coveredByAncestor = true;
+                    break;
+                }
+                parent = parent.parentElement;
+            }
+            if (!coveredByAncestor) {
+                if (node === document.body || node === document.documentElement) {
+                    highlightRegNumbers(node);
+                } else if (node.nodeType === 1 && node.getBoundingClientRect) {
+                    const rect = node.getBoundingClientRect();
+                    // Om elementet är i eller nära skärmen (eller saknar höjd): skanna direkt!
+                    if (rect.height === 0 || (rect.bottom >= -400 && rect.top <= window.innerHeight + 400)) {
+                        highlightRegNumbers(node);
+                    } else {
+                        // Ligger långt utanför skärmen: vänta tills användaren scrollar dit
+                        viewportObserver.observe(node);
+                    }
+                } else {
+                    highlightRegNumbers(node);
+                }
+            }
+        }
+    }
+
+    function scheduleHighlight(node) {
+        pendingNodes.add(node);
+        if (!highlightScheduled) {
+            highlightScheduled = true;
+            if ('requestIdleCallback' in window) {
+                window.requestIdleCallback(flushHighlightQueue, { timeout: 120 });
+            } else {
+                requestAnimationFrame(flushHighlightQueue);
+            }
+        }
+    }
+
+    function startHighlightObserver() {
+        if (highlightObserver) highlightObserver.disconnect();
+        scheduleHighlight(document.body);
+        highlightObserver = new MutationObserver((mutations) => {
+            if (!isHighlightEnabled) return;
+            for (const m of mutations) {
+                for (const node of m.addedNodes) {
+                    if (node.nodeType === 1 && !node.classList?.contains('bmg-reg-highlight') && node.id !== 'bmg-hover-bridge') {
+                        scheduleHighlight(node);
+                    } else if (node.nodeType === 3 && node.parentElement && !node.parentElement.classList?.contains('bmg-reg-highlight')) {
+                        scheduleHighlight(node.parentElement);
+                    }
+                }
+            }
+        });
+        highlightObserver.observe(document.body, { childList: true, subtree: true });
+    }
+
+    function unwrapAllHighlights() {
+        if (highlightObserver) highlightObserver.disconnect();
+        viewportObserver.disconnect();
+        pendingNodes.clear();
+        if (hoverBridgeEl) hoverBridgeEl.classList.remove('visible');
+        document.querySelectorAll('.bmg-reg-highlight').forEach(span => {
+            const parent = span.parentNode;
+            if (parent) {
+                parent.replaceChild(document.createTextNode(span.textContent), span);
+                parent.normalize(); // Slår ihop uppdelade textnoder till en hel sträng igen
+            }
         });
     }
 
@@ -1344,9 +1522,11 @@ if (!HOST.includes('oljemagasinet.se') && !HOST.includes('car.info') && !HOST.in
         if (res.os_hover_blacklist) {
             hoverBlacklist = res.os_hover_blacklist.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
         }
+        currentHighlightStyle = res.os_highlight_style || 'saas';
+        if (document.body) document.body.setAttribute('data-bmg-style', currentHighlightStyle);
+
         if (isHighlightEnabled = res.os_highlight_enabled !== false) {
-            currentHighlightStyle = res.os_highlight_style || 'saas';
-            highlightInterval = setInterval(highlightRegNumbers, 2000);
+            startHighlightObserver();
         }
     });
 
@@ -1358,6 +1538,18 @@ if (!HOST.includes('oljemagasinet.se') && !HOST.includes('car.info') && !HOST.in
             if (changes.os_hover_blacklist !== undefined) {
                 const val = changes.os_hover_blacklist.newValue || '';
                 hoverBlacklist = val.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+            }
+            if (changes.os_highlight_style !== undefined) {
+                currentHighlightStyle = changes.os_highlight_style.newValue || 'saas';
+                if (document.body) document.body.setAttribute('data-bmg-style', currentHighlightStyle);
+            }
+            if (changes.os_highlight_enabled !== undefined) {
+                isHighlightEnabled = changes.os_highlight_enabled.newValue !== false;
+                if (isHighlightEnabled) {
+                    startHighlightObserver();
+                } else {
+                    unwrapAllHighlights();
+                }
             }
         }
     });
@@ -1411,7 +1603,7 @@ if (!HOST.includes('oljemagasinet.se') && !HOST.includes('car.info') && !HOST.in
                     chrome.storage.local.set({ 
                         'os_combo_queue': queue, 
                         'os_combo_regnr': reg,
-                        'os_external_task': { regnr: reg, target: startTarget },
+                        'os_external_task': { regnr: reg, target: startTarget, ts: Date.now() },
                         'os_external_task_origin': 'webpage'
                     }, () => {
                         window.open(startUrl, 'VehicleRadarPopup', 'width=450,height=550,left=9999,top=9999');
