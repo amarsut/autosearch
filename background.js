@@ -110,7 +110,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     }
 
     if (request.action === 'OPEN_POPUP_FOR_REG') {
-        chrome.storage.local.set({ 'pending_context_search': request.regnr }, () => {
+        const payload = { 'pending_context_search': request.regnr };
+        if (request.engine) payload['pending_context_engine'] = request.engine;
+        chrome.storage.local.set(payload, () => {
             if (isMobile) {
                 chrome.tabs.create({ url: chrome.runtime.getURL("popup.html"), active: true });
             } else {
@@ -165,6 +167,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         };
         fetchEtka();
         return true; 
+    }
+
+    if (request.action === 'OPEN_TAB_DIRECT') {
+        chrome.tabs.create({ url: request.url, active: request.active !== false });
     }
 });
 
