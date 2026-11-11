@@ -46,41 +46,132 @@
                 </svg>
             </button>
 
-            <!-- Dold flytande inställningspanel -->
-            <div id="settings-panel" class="settings-dropdown hidden">
-                <div class="dropdown-header">Automatisering</div>
-                <label class="setting-row"><span class="label-text">Markera reg-nr på webbsidor</span><div class="toggle-switch"><input type="checkbox" id="toggle-highlight" checked><div class="slider"></div></div></label>
-                <label class="setting-row"><span class="label-text">Autosök reg-nr</span><div class="toggle-switch"><input type="checkbox" id="toggle-autosearch" checked><div class="slider"></div></div></label>
-                <div class="setting-row"><span class="label-text">Högerklicksmeny</span><select id="context-menu-mode-select" class="premium-select"><option value="submenu" selected>Bridge-meny</option><option value="direct">Direktklick</option></select></div>
-                
-                <div class="dropdown-header" style="margin-top: 12px; margin-bottom: 4px;">Stil för sidomarkering</div>
-                <div class="custom-select-wrapper" id="highlight-style-wrapper">
-                    <div class="custom-select-trigger" id="highlight-style-trigger">
-                        <span id="active-style-preview" class="prev-saas">ABC123</span>
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                    </div>
-                    <div class="custom-select-options hidden" id="highlight-style-options">
-                        <div class="style-list-item" data-style="saas" data-class="prev-saas"><span class="prev-saas">ABC123</span><span class="style-name">SaaS</span></div>
-                        <div class="style-list-item" data-style="underline" data-class="prev-underline"><span class="prev-underline">ABC123</span><span class="style-name">Underline</span></div>
-                        <div class="style-list-item" data-style="ghost" data-class="prev-ghost"><span class="prev-ghost">ABC123</span><span class="style-name">Ghost</span></div>
-                        <div class="style-list-item" data-style="accent" data-class="prev-accent"><span class="prev-accent">ABC123</span><span class="style-name">Accent</span></div>
-                    </div>
+            <!-- Helskärms inställningsvy -->
+            <div id="settings-panel" class="settings-fullscreen hidden">
+                <div class="settings-nav">
+                    <button id="close-settings-btn" class="settings-back-btn" title="Gå tillbaka">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                        <span>Tillbaka</span>
+                    </button>
+                    <span class="settings-header-title">Inställningar</span>
                 </div>
 
-                <div class="dropdown-header">System & Databas</div>
-                <label class="setting-row"><span class="label-text">Spela upp aviseringsljud</span><div class="toggle-switch"><input type="checkbox" id="toggle-sound" checked><div class="slider"></div></div></label>
-                <label class="setting-row"><span class="label-text">Molnsynk (Firebase)</span><div class="toggle-switch"><input type="checkbox" id="toggle-cloud-sync" checked><div class="slider"></div></div></label>
-                <div class="setting-row"><span class="label-text">Gränssnittets storlek</span><select id="ui-scale-select" class="premium-select"><option value="0.9">Liten</option><option value="1">Normal</option><option value="1.15">Stor</option><option value="1.3">Max</option></select></div>
-                <div class="setting-row"><span class="label-text">Sparade sökningar</span><select id="history-limit-select" class="premium-select"><option value="0">0</option><option value="5">5</option><option value="10">10</option></select></div>
-                <div class="setting-row"><span class="label-text">Standardsökning</span><select id="default-search-select" class="premium-select"><option value="om">Oljemagasinet</option><option value="ts">Transportstyrelsen</option><option value="ci">Car.info</option><option value="bu">Biluppgifter</option><option value="combo">BU + OM</option><option value="combo-ci-om" selected>CI + OM</option></select></div>
-                
-                <div class="dropdown-header">Uppdatering & Underhåll</div>
-                <button id="download-update-btn" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; background: linear-gradient(135deg, #f97316, #ea580c); border: none; color: #ffffff; padding: 12px; border-radius: 10px; font-size: 10.5px; font-weight: 900; letter-spacing: 0.5px; cursor: pointer; box-shadow: 0 4px 12px rgba(249, 115, 22, 0.25); transition: all 0.2s; margin-top: 8px;">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                    LADDA NER UPPDATERING
-                </button>
+                <div class="settings-scroll-body">
+                    <div class="settings-group">
+                        <div class="settings-group-title">Automatisering & Sidskanning</div>
+                        <label class="setting-card">
+                            <div class="setting-text">
+                                <span class="setting-main">Markera reg-nr</span>
+                                <span class="setting-sub">Sök automatiskt efter reg-nr i webbsidor</span>
+                            </div>
+                            <div class="toggle-switch"><input type="checkbox" id="toggle-highlight" checked><div class="slider"></div></div>
+                        </label>
+                        <label class="setting-card">
+                            <div class="setting-text">
+                                <span class="setting-main">Hover-meny</span>
+                                <span class="setting-sub">Visa snabbmeny vid hovring på registreringsnummer</span>
+                            </div>
+                            <div class="toggle-switch"><input type="checkbox" id="toggle-hover-menu" checked><div class="slider"></div></div>
+                        </label>
+                        <label class="setting-card">
+                            <div class="setting-text">
+                                <span class="setting-main">Autosök vid inmatning</span>
+                                <span class="setting-sub">Starta sökning direkt när 6 tecken fyllts i</span>
+                            </div>
+                            <div class="toggle-switch"><input type="checkbox" id="toggle-autosearch" checked><div class="slider"></div></div>
+                        </label>
+                        <div class="setting-card-block">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                                <span class="setting-main">Svartlistade domäner (Hover-meny)</span>
+                                <button id="add-current-host-btn" type="button" class="action-mini-btn">+ Denna domän</button>
+                            </div>
+                            <input type="text" id="hover-blacklist-input" placeholder="t.ex. blocket.se, localhost" class="settings-text-input">
+                        </div>
+                        <div class="setting-card-block">
+                            <span class="setting-main" style="margin-bottom:6px; display:block;">Stil för sidomarkering</span>
+                            <div class="custom-select-wrapper" id="highlight-style-wrapper">
+                                <div class="custom-select-trigger" id="highlight-style-trigger">
+                                    <span id="active-style-preview" class="prev-saas">ABC123</span>
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                                </div>
+                                <div class="custom-select-options hidden" id="highlight-style-options">
+                                    <div class="style-list-item" data-style="saas" data-class="prev-saas"><span class="prev-saas">ABC123</span><span class="style-name">SaaS Badge</span></div>
+                                    <div class="style-list-item" data-style="underline" data-class="prev-underline"><span class="prev-underline">ABC123</span><span class="style-name">Underline</span></div>
+                                    <div class="style-list-item" data-style="ghost" data-class="prev-ghost"><span class="prev-ghost">ABC123</span><span class="style-name">Ghost (Ram)</span></div>
+                                    <div class="style-list-item" data-style="accent" data-class="prev-accent"><span class="prev-accent">ABC123</span><span class="style-name">Accent (Sidostreck)</span></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="settings-group">
+                        <div class="settings-group-title">System & Beteende</div>
+                        <label class="setting-card">
+                            <div class="setting-text">
+                                <span class="setting-main">Aviseringsljud</span>
+                                <span class="setting-sub">Spela diskret ljud när fordon hittas</span>
+                            </div>
+                            <div class="toggle-switch"><input type="checkbox" id="toggle-sound" checked><div class="slider"></div></div>
+                        </label>
+                        <label class="setting-card">
+                            <div class="setting-text">
+                                <span class="setting-main">Molnsynk (Firebase)</span>
+                                <span class="setting-sub">Dela historik och fästa fordon mellan enheter</span>
+                            </div>
+                            <div class="toggle-switch"><input type="checkbox" id="toggle-cloud-sync" checked><div class="slider"></div></div>
+                        </label>
+                        <div class="setting-card">
+                            <div class="setting-text">
+                                <span class="setting-main">Standardsökning</span>
+                                <span class="setting-sub">Primär sökmotor vid snabbsök</span>
+                            </div>
+                            <select id="default-search-select" class="settings-select">
+                                <option value="combo-ci-om" selected>Car.info + Oljemagasinet</option>
+                                <option value="combo">Biluppgifter + Oljemagasinet</option>
+                                <option value="ci">Endast Car.info</option>
+                                <option value="bu">Endast Biluppgifter</option>
+                                <option value="ts">Transportstyrelsen</option>
+                                <option value="om">Oljemagasinet</option>
+                            </select>
+                        </div>
+                        <div class="setting-card">
+                            <div class="setting-text">
+                                <span class="setting-main">Gränssnittets storlek</span>
+                                <span class="setting-sub">Skala upp eller ner UI:t</span>
+                            </div>
+                            <select id="ui-scale-select" class="settings-select">
+                                <option value="0.9">Kompakt (90%)</option>
+                                <option value="1">Standard (100%)</option>
+                                <option value="1.15">Stor (115%)</option>
+                                <option value="1.3">Max (130%)</option>
+                            </select>
+                        </div>
+                        <div class="setting-card">
+                            <div class="setting-text">
+                                <span class="setting-main">Sparade fordon</span>
+                                <span class="setting-sub">Max antal fordon i historiklistan</span>
+                            </div>
+                            <select id="history-limit-select" class="settings-select">
+                                <option value="0">Inaktiverad (0)</option>
+                                <option value="5">5 fordon</option>
+                                <option value="10">10 fordon</option>
+                                <option value="25">25 fordon</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="settings-group">
+                        <div class="settings-group-title">Uppdatering & Verktyg</div>
+                        <button id="switch-beta-btn" class="settings-action-btn secondary">
+                            <span>VÄXLA TILL BETA-UI</span>
+                        </button>
+                        <button id="download-update-btn" class="settings-action-btn primary" style="margin-top:8px;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                            <span>LADDA NER SENASTE UPPDATERING</span>
+                        </button>
+                    </div>
+                </div>
             </div>
-        </div>
     </header>
 
     <!-- 2. CENTRERAD HERO LOGGA -->
