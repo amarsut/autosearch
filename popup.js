@@ -132,7 +132,56 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     setupToggle('toggle-highlight', 'os_highlight_enabled', 'highlight', 'Autoskanning');
+    setupToggle('toggle-hover-menu', 'os_hover_menu_enabled', 'hoverMenu', 'Hover-meny');
     setupToggle('toggle-autosearch', 'os_autosearch_enabled', 'autoSearch', 'Autosök');
+
+    const blacklistInput = document.getElementById('hover-blacklist-input');
+    if (blacklistInput) {
+        chrome.storage.local.get(['os_hover_blacklist'], (res) => {
+            blacklistInput.value = res.os_hover_blacklist || '';
+        });
+        const saveCleanBlacklist = () => {
+            // Tvättar bort https://, http://, www. och avslutande snedstreck automatiskt
+            const raw = blacklistInput.value;
+            const cleaned = raw.split(',')
+                .map(item => item.trim()
+                    .replace(/^https?:\/\//i, '')
+                    .replace(/^www\./i, '')
+                    .replace(/\/.*$/, '')
+                    .toLowerCase()
+                )
+                .filter(Boolean)
+                .join(', ');
+            
+            blacklistInput.value = cleaned;
+            chrome.storage.local.set({ 'os_hover_blacklist': cleaned });
+            showToast('Svartlista sparad');
+        };
+        blacklistInput.addEventListener('change', saveCleanBlacklist);
+        blacklistInput.addEventListener('blur', saveCleanBlacklist);
+        blacklistInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') saveCleanBlacklist(); });
+
+        const addHostBtn = document.getElementById('add-current-host-btn');
+        if (addHostBtn) {
+            addHostBtn.addEventListener('click', () => {
+                chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+                    if (!tabs || !tabs[0]?.url) return;
+                    try {
+                        const host = new URL(tabs[0].url).hostname.replace(/^www\./i, '');
+                        if (!host) return;
+                        const existing = blacklistInput.value ? blacklistInput.value.split(',').map(s => s.trim().toLowerCase()) : [];
+                        if (!existing.includes(host)) {
+                            existing.push(host);
+                            blacklistInput.value = existing.join(', ');
+                            saveCleanBlacklist();
+                        } else {
+                            showToast('Domänen finns redan i listan');
+                        }
+                    } catch (e) {}
+                });
+            });
+        }
+    }
     setupToggle('toggle-sound', 'os_sound_enabled', 'sound', null);
     setupToggle('toggle-cloud-sync', 'os_cloud_sync_enabled', 'cloudSync', 'Molnsynk'); // NY
 
@@ -1611,18 +1660,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const settingsBtn = document.getElementById('settings-btn');
     const settingsPanel = document.getElementById('settings-panel');
+    const closeSettingsBtn = document.getElementById('close-settings-btn');
+
     if (settingsBtn && settingsPanel) {
         settingsBtn.addEventListener('click', (e) => {
             e.stopPropagation();
-            settingsPanel.classList.toggle('hidden');
-            settingsBtn.classList.toggle('active');
+            settingsPanel.classList.remove('hidden');
         });
-        document.addEventListener('click', (e) => {
-            if (!settingsPanel.classList.contains('hidden') && !settingsPanel.contains(e.target) && e.target !== settingsBtn) {
+
+        if (closeSettingsBtn) {
+            closeSettingsBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
                 settingsPanel.classList.add('hidden');
-                settingsBtn.classList.remove('active');
-            }
-        });
+            });
+        }
     }
 
     UI.regInput.addEventListener('input', (e) => {
@@ -1680,7 +1731,15 @@ document.addEventListener('DOMContentLoaded', () => {
         UI.regInput.focus();
     });
 
-    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') UI.resultContainer.classList.contains('hidden') ? UI.regInput.value = '' : UI.closeBtn?.click(); });
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            if (settingsPanel && !settingsPanel.classList.contains('hidden')) {
+                settingsPanel.classList.add('hidden');
+                return;
+            }
+            UI.resultContainer.classList.contains('hidden') ? UI.regInput.value = '' : UI.closeBtn?.click();
+        }
+    });
 
     document.querySelectorAll('.copyable').forEach(el => el.addEventListener('click', (e) => {
         const val = (e.currentTarget.querySelector('.value') || e.currentTarget).innerText;
@@ -1969,7 +2028,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Säkerställ att "downloads" finns i manifest.json
             if (chrome.downloads) {
                 chrome.downloads.download({
-                    url: "https://raw.githubusercontent.com/amarsut/lager/main/chrometillagg/AutoSearch.zip",
+                    url: "https://github.com/amarsut/autosearch/archive/refs/heads/main.zip",
                     filename: "AutoSearch_Uppdatering.zip",
                     saveAs: true 
                 }, (downloadId) => {
