@@ -795,6 +795,71 @@ body.edit-mode div#card-combined-history > div.tab-content-container { grid-colu
 .prev-underline { background-color: transparent; color: #0f172a; border-bottom: 2px solid #f97316; padding: 1px 2px; font-weight: 800; font-size: 9.5px; letter-spacing: 0.5px; }
 .prev-ghost { background-color: transparent; color: #0f172a; border: 1px dashed #f97316; border-radius: 4px; padding: 1px 4px; font-weight: 800; font-size: 9.5px; letter-spacing: 0.5px; }
 .prev-accent { background-color: transparent; color: #0f172a; border: 1px solid rgba(148, 163, 184, 0.4); border-left: 3px solid #f97316; border-radius: 4px; padding: 1px 4px 1px 5px; font-weight: 800; font-size: 9.5px; letter-spacing: 0.5px; }
+.prev-corner {
+    background: rgba(249, 115, 22, 0.06);
+    color: #0f172a;
+    border-left: 3px solid #f97316;
+    border-bottom: 2px solid #f97316;
+    border-radius: 0 3px 0 4px;
+    padding: 1px 6px;
+    font-size: 11px;
+    font-weight: 900;
+}
+
+.prev-bracket {
+    background: transparent;
+    color: #0f172a;
+    border-top: 1px solid #cbd5e1;
+    border-bottom: 1px solid #cbd5e1;
+    border-left: 3px solid #f97316;
+    border-right: 3px solid #f97316;
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-size: 11px;
+    font-weight: 900;
+}
+
+.prev-topbar {
+    background: transparent;
+    color: #0f172a;
+    border: 1px solid #cbd5e1;
+    border-top: 2.5px solid #f97316;
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-size: 11px;
+    font-weight: 900;
+}
+
+.prev-pulse {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: transparent;
+    color: #0f172a;
+    border: 1px solid #cbd5e1;
+    border-radius: 5px;
+    padding: 1px 6px 1px 5px;
+    font-size: 11px;
+    font-weight: 900;
+}
+.prev-pulse::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #f97316;
+}
+
+.prev-plate {
+    background: #ffffff;
+    color: #0f172a;
+    border: 1px solid #94a3b8;
+    border-left: 5px solid #1d4ed8;
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-size: 11px;
+    font-weight: 900;
+}
 
 /* ==========================================
    FIX: PLACERA PRICKEN DIREKT BREDVID PRISET
