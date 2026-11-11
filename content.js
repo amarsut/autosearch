@@ -1159,11 +1159,145 @@ if (!HOST.includes('oljemagasinet.se') && !HOST.includes('car.info') && !HOST.in
             /* 4. Sidomarkör (Accent) - Med adaptiv ram */
             .bmg-style-accent { background-color: transparent !important; color: inherit !important; border: 1px solid rgba(148, 163, 184, 0.4) !important; border-left: 3px solid #f97316 !important; border-radius: 4px !important; padding: 1px 5px 1px 6px !important; font-weight: 700 !important; cursor: pointer !important; transition: all 0.2s ease !important; display: inline-block !important; pointer-events: auto !important; margin: 0 2px !important; box-shadow: 0 1px 2px rgba(0,0,0,0.05) !important; }
             .bmg-style-accent:hover { background-color: rgba(249, 115, 22, 0.15) !important; color: #f97316 !important; border-color: rgba(249, 115, 22, 0.4) !important; border-left-color: #ea580c !important; }
+
+            /* 5. Exakt 1:1 klon av Chromes inbyggda högerklicksmeny */
+            #bmg-hover-bridge { position: fixed; z-index: 2147483647; min-width: 286px; background: #1f1f1f; border: none; border-radius: 12px; padding: 8px 0; box-shadow: 0 10px 28px rgba(0, 0, 0, 0.52), 0 2px 8px rgba(0, 0, 0, 0.28); font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; opacity: 0; pointer-events: none; transform: translateY(-2px); transition: opacity 0.1s ease, transform 0.1s ease; box-sizing: border-box; user-select: none; }
+            #bmg-hover-bridge.visible { opacity: 1; pointer-events: auto; transform: translateY(0); }
+            .bmg-hb-btn { width: calc(100% - 12px); margin: 0 6px; display: flex; align-items: center; background: transparent; border: none; border-radius: 6px; color: #e3e3e3; font-size: 13px; font-weight: 400; padding: 7px 14px; cursor: default; text-align: left; box-sizing: border-box; line-height: 1.35; white-space: nowrap; letter-spacing: 0.1px; }
+            .bmg-hb-btn:hover { background: #37393b; color: #ffffff; }
+            .bmg-hb-left { display: inline-flex; align-items: center; gap: 11px; }
+            .bmg-hb-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; display: inline-block; }
+            .bmg-hb-reg-inline { color: inherit; font-weight: 400; }
+            .bmg-hb-sep { height: 1px; background: #3c4043; margin: 7px 0; }
         `;
         document.head.appendChild(style);
     }
 
-    let highlightInterval = null, isHighlightEnabled = true, currentHighlightStyle = 'saas';
+    let highlightInterval = null, isHighlightEnabled = true, isHoverMenuEnabled = true, currentHighlightStyle = 'saas';
+    let hoverBridgeEl = null, hoverHideTimer = null, hoverShowTimer = null, activeHoverReg = '';
+
+    function getHoverBridge() {
+        if (hoverBridgeEl) return hoverBridgeEl;
+        hoverBridgeEl = document.createElement('div');
+        hoverBridgeEl.id = 'bmg-hover-bridge';
+        hoverBridgeEl.innerHTML = `
+            <button class="bmg-hb-btn" data-act="search">
+                <span class="bmg-hb-left"><span class="bmg-hb-dot" style="background:#f46524;"></span><span>Sök Fordon: '<span class="bmg-hb-reg-inline" data-reg></span>'</span></span>
+            </button>
+            <button class="bmg-hb-btn" data-act="porsche">
+                <span class="bmg-hb-left"><span class="bmg-hb-dot" style="background:#0074e8;"></span><span>Öppna i Porsche Service: '<span class="bmg-hb-reg-inline" data-reg></span>'</span></span>
+            </button>
+            <div class="bmg-hb-sep"></div>
+            <button class="bmg-hb-btn" data-act="bu-scrape">
+                <span class="bmg-hb-left"><span class="bmg-hb-dot" style="background:#00c853;"></span><span>Sök via Biluppgifter: '<span class="bmg-hb-reg-inline" data-reg></span>'</span></span>
+            </button>
+            <button class="bmg-hb-btn" data-act="ci-direct">
+                <span class="bmg-hb-left"><span class="bmg-hb-dot" style="background:#ffffff;"></span><span>Öppna Car.info direkt: '<span class="bmg-hb-reg-inline" data-reg></span>'</span></span>
+            </button>
+            <button class="bmg-hb-btn" data-act="bu-direct">
+                <span class="bmg-hb-left"><span class="bmg-hb-dot" style="background:#ffffff;"></span><span>Öppna Biluppgifter direkt: '<span class="bmg-hb-reg-inline" data-reg></span>'</span></span>
+            </button>
+        `;
+        hoverBridgeEl.addEventListener('mouseenter', () => clearTimeout(hoverHideTimer));
+        hoverBridgeEl.addEventListener('mouseleave', () => {
+            hoverHideTimer = setTimeout(() => hoverBridgeEl.classList.remove('visible'), 150);
+        });
+
+        // Stäng direkt om användaren scrollar sidan eller i någon underliggande container
+        const hideOnScroll = () => {
+            clearTimeout(hoverShowTimer);
+            if (hoverBridgeEl && hoverBridgeEl.classList.contains('visible')) {
+                hoverBridgeEl.classList.remove('visible');
+            }
+        };
+        window.addEventListener('scroll', hideOnScroll, { capture: true, passive: true });
+        window.addEventListener('wheel', hideOnScroll, { passive: true });
+        window.addEventListener('touchmove', hideOnScroll, { passive: true });
+
+        // Stäng på ESC
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && hoverBridgeEl && hoverBridgeEl.classList.contains('visible')) {
+                clearTimeout(hoverShowTimer);
+                hoverBridgeEl.classList.remove('visible');
+            }
+        });
+
+        hoverBridgeEl.querySelectorAll('.bmg-hb-btn').forEach(btn => {
+            btn.addEventListener('mousedown', (e) => {
+                e.preventDefault(); e.stopPropagation();
+                if (!activeHoverReg) return;
+                const act = btn.dataset.act;
+                hoverBridgeEl.classList.remove('visible');
+                if (act === 'search') {
+                    chrome.runtime.sendMessage({ action: 'OPEN_POPUP_FOR_REG', regnr: activeHoverReg });
+                } else if (act === 'bu-scrape') {
+                    chrome.runtime.sendMessage({ action: 'OPEN_POPUP_FOR_REG', regnr: activeHoverReg, engine: 'bu' });
+                } else if (act === 'porsche') {
+                    chrome.runtime.sendMessage({ 
+                        action: 'OPEN_TAB_DIRECT', 
+                        url: `https://ph-veh-se03.cross.porscheinformatik.com/physical-vehicle/search?applicationName=SERVICE&conversation=1794303212235&prodFam=C3&q=${activeHoverReg.toLowerCase()}`, 
+                        active: !e.ctrlKey && !e.metaKey 
+                    });
+                } else if (act === 'ci-direct') {
+                    chrome.runtime.sendMessage({ 
+                        action: 'OPEN_TAB_DIRECT', 
+                        url: `https://www.car.info/sv-se/license-plate/S/${activeHoverReg}`, 
+                        active: !e.ctrlKey && !e.metaKey 
+                    });
+                } else if (act === 'bu-direct') {
+                    chrome.runtime.sendMessage({ 
+                        action: 'OPEN_TAB_DIRECT', 
+                        url: `https://biluppgifter.se/fordon/${activeHoverReg}`, 
+                        active: !e.ctrlKey && !e.metaKey 
+                    });
+                }
+            });
+        });
+        document.body.appendChild(hoverBridgeEl);
+        return hoverBridgeEl;
+    }
+
+    let hoverBlacklist = [];
+
+    function cleanDomain(str) {
+        return (str || '').trim()
+            .replace(/^https?:\/\//i, '')
+            .replace(/^www\./i, '')
+            .replace(/\/.*$/, '')
+            .toLowerCase();
+    }
+
+    function isCurrentHostBlacklisted() {
+        const currentCleanHost = cleanDomain(window.location.hostname);
+        return hoverBlacklist.some(item => {
+            const cleanTarget = cleanDomain(item);
+            return cleanTarget && (currentCleanHost.includes(cleanTarget) || cleanTarget.includes(currentCleanHost));
+        });
+    }
+
+    function showHoverBridge(targetSpan, cleanReg) {
+        if (!isHoverMenuEnabled || isCurrentHostBlacklisted()) return;
+        clearTimeout(hoverHideTimer);
+        clearTimeout(hoverShowTimer);
+        hoverShowTimer = setTimeout(() => {
+            activeHoverReg = cleanReg;
+            const menu = getHoverBridge();
+            menu.querySelectorAll('[data-reg]').forEach(el => el.textContent = cleanReg);
+            const rect = targetSpan.getBoundingClientRect();
+            const showAbove = (window.innerHeight - rect.bottom) < 185;
+            const topPos = showAbove ? (rect.top - 170) : (rect.bottom + 4);
+            const menuWidth = 295;
+            let leftPos = rect.left;
+            if (leftPos + menuWidth > window.innerWidth - 12) {
+                leftPos = window.innerWidth - menuWidth - 12;
+            }
+            if (leftPos < 8) leftPos = 8;
+
+            menu.style.top = `${Math.max(topPos, 8)}px`;
+            menu.style.left = `${leftPos}px`;
+            menu.classList.add('visible');
+        }, 120);
+    }
 
     function highlightRegNumbers() {
         if (!isHighlightEnabled) return;
@@ -1173,7 +1307,7 @@ if (!HOST.includes('oljemagasinet.se') && !HOST.includes('car.info') && !HOST.in
         
         while (node = walker.nextNode()) {
             const p = node.parentElement;
-            if (p && !['SCRIPT', 'STYLE', 'NOSCRIPT', 'TEXTAREA', 'INPUT', 'BUTTON'].includes(p.tagName) && !p.classList.contains('bmg-reg-highlight') && !p.isContentEditable && regex.test(node.nodeValue)) nodesToReplace.push(node);
+            if (p && !['SCRIPT', 'STYLE', 'NOSCRIPT', 'TEXTAREA', 'INPUT', 'BUTTON'].includes(p.tagName) && !p.classList.contains('bmg-reg-highlight') && !p.closest('#bmg-hover-bridge') && !p.isContentEditable && regex.test(node.nodeValue)) nodesToReplace.push(node);
         }
         
         nodesToReplace.forEach(textNode => {
@@ -1183,13 +1317,19 @@ if (!HOST.includes('oljemagasinet.se') && !HOST.includes('car.info') && !HOST.in
                 matched = true; fragment.appendChild(document.createTextNode(text.substring(lastIndex, match.index)));
                 
                 const span = document.createElement('span'); 
-                // Kopplar automatiskt på den CSS-klass som du valt i inställningarna!
+                const cleanReg = match[0].replace(/\s/g, '').toUpperCase();
                 span.className = `bmg-reg-highlight bmg-style-${currentHighlightStyle}`;
                 span.textContent = match[0]; 
-                span.title = 'Sök fordon med AutoSearch';
                 
+                span.addEventListener('mouseenter', () => showHoverBridge(span, cleanReg));
+                span.addEventListener('mouseleave', () => {
+                    clearTimeout(hoverShowTimer);
+                    hoverHideTimer = setTimeout(() => { if (hoverBridgeEl) hoverBridgeEl.classList.remove('visible'); }, 180);
+                });
                 span.addEventListener('mousedown', (e) => {
-                    if (e.button === 0) { e.preventDefault(); e.stopPropagation(); chrome.runtime.sendMessage({ action: 'OPEN_POPUP_FOR_REG', regnr: match[0].replace(/\s/g, '') }); }
+                    clearTimeout(hoverShowTimer);
+                    if (hoverBridgeEl) hoverBridgeEl.classList.remove('visible');
+                    if (e.button === 0) { e.preventDefault(); e.stopPropagation(); chrome.runtime.sendMessage({ action: 'OPEN_POPUP_FOR_REG', regnr: cleanReg }); }
                     else if (e.button === 2) { const sel = window.getSelection(), range = document.createRange(); range.selectNodeContents(span); sel.removeAllRanges(); sel.addRange(range); }
                 });
                 span.addEventListener('contextmenu', e => e.stopPropagation());
@@ -1199,10 +1339,26 @@ if (!HOST.includes('oljemagasinet.se') && !HOST.includes('car.info') && !HOST.in
         });
     }
 
-    chrome.storage.local.get(['os_highlight_enabled', 'os_highlight_style'], (res) => {
+    chrome.storage.local.get(['os_highlight_enabled', 'os_highlight_style', 'os_hover_menu_enabled', 'os_hover_blacklist'], (res) => {
+        isHoverMenuEnabled = res.os_hover_menu_enabled !== false;
+        if (res.os_hover_blacklist) {
+            hoverBlacklist = res.os_hover_blacklist.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+        }
         if (isHighlightEnabled = res.os_highlight_enabled !== false) {
             currentHighlightStyle = res.os_highlight_style || 'saas';
             highlightInterval = setInterval(highlightRegNumbers, 2000);
+        }
+    });
+
+    chrome.storage.onChanged.addListener((changes, ns) => {
+        if (ns === 'local') {
+            if (changes.os_hover_menu_enabled !== undefined) {
+                isHoverMenuEnabled = changes.os_hover_menu_enabled.newValue !== false;
+            }
+            if (changes.os_hover_blacklist !== undefined) {
+                const val = changes.os_hover_blacklist.newValue || '';
+                hoverBlacklist = val.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+            }
         }
     });
 
