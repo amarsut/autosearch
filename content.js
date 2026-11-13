@@ -1145,62 +1145,128 @@ async function startBURadar(activeReg) {
 if (!HOST.includes('oljemagasinet.se') && !HOST.includes('car.info') && !HOST.includes('transportstyrelsen.se') && !HOST.includes('trodo.se')) {
     
     // Injicera CSS-mallarna en enda gång för maximal prestanda!
+    function hexToRgba(hex, alpha) {
+        const h = (hex || '#f97316').replace('#', '');
+        const r = parseInt(h.substring(0, 2), 16) || 249;
+        const g = parseInt(h.substring(2, 4), 16) || 115;
+        const b = parseInt(h.substring(4, 6), 16) || 22;
+        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    }
+
     if (!document.getElementById('bmg-highlight-styles')) {
         const style = document.createElement('style');
         style.id = 'bmg-highlight-styles';
-        style.textContent = `
+        const buildRules = (attr, cls, pfx) => `
+            /* Basregler: Rör ALDRIG sidans egen layout/display i normalläge */
+            body ${cls} {
+                display: inline !important;
+                pointer-events: auto !important;
+                transition: all 0.18s ease !important;
+                font-weight: var(--bmg-${pfx}-weight, inherit) !important;
+                text-decoration: var(--bmg-${pfx}-deco, inherit) !important;
+                cursor: var(--bmg-${pfx}-cursor, inherit) !important;
+                font-family: var(--bmg-${pfx}-font, inherit) !important;
+            }
+            /* 0. Osynlig: 100% identisk med sidans originalutseende */
+            body[${attr}="none"] ${cls} {
+                all: unset !important;
+                display: inline !important;
+                pointer-events: auto !important;
+                cursor: var(--bmg-${pfx}-cursor, inherit) !important;
+                font-weight: var(--bmg-${pfx}-weight, inherit) !important;
+                text-decoration: var(--bmg-${pfx}-deco, inherit) !important;
+                font-family: var(--bmg-${pfx}-font, inherit) !important;
+            }
+            body[${attr}="none"][data-bmg-${pfx}-hover="true"] ${cls}:hover { color: var(--bmg-${pfx}-color) !important; }
+
             /* 1. SaaS Badge */
-            body[data-bmg-style="saas"] .bmg-reg-highlight, .bmg-style-saas { background-color: rgba(249, 115, 22, 0.15) !important; color: #f97316 !important; border: 1px solid rgba(249, 115, 22, 0.3) !important; border-radius: 6px !important; padding: 1px 6px !important; font-weight: 700 !important; letter-spacing: 0.5px !important; cursor: pointer !important; transition: all 0.2s ease !important; display: inline-block !important; pointer-events: auto !important; margin: 0 2px !important; }
-            body[data-bmg-style="saas"] .bmg-reg-highlight:hover, .bmg-style-saas:hover { background-color: #f97316 !important; color: #ffffff !important; }
-            
-            /* 2. Underline Reveal */
-            body[data-bmg-style="underline"] .bmg-reg-highlight, .bmg-style-underline { background-color: transparent !important; color: inherit !important; border-bottom: 2px solid #f97316 !important; padding: 0 2px !important; font-weight: 800 !important; cursor: pointer !important; transition: all 0.2s ease-out !important; display: inline-block !important; pointer-events: auto !important; box-shadow: inset 0 0 0 rgba(249, 115, 22, 0) !important; }
-            body[data-bmg-style="underline"] .bmg-reg-highlight:hover, .bmg-style-underline:hover { box-shadow: inset 0 -24px 0 rgba(249, 115, 22, 0.15) !important; color: #f97316 !important; }
-            
-            /* 3. Diskret Ram (Ghost) */
-            body[data-bmg-style="ghost"] .bmg-reg-highlight, .bmg-style-ghost { background-color: transparent !important; color: inherit !important; border: 1px dashed #f97316 !important; border-radius: 4px !important; padding: 1px 5px !important; font-weight: 700 !important; cursor: pointer !important; transition: all 0.2s ease !important; display: inline-block !important; pointer-events: auto !important; margin: 0 2px !important; }
-            body[data-bmg-style="ghost"] .bmg-reg-highlight:hover, .bmg-style-ghost:hover { background-color: rgba(249, 115, 22, 0.1) !important; border-style: solid !important; color: #f97316 !important; }
-            
-            /* 4. Sidomarkör (Accent) - Med adaptiv ram */
-            body[data-bmg-style="accent"] .bmg-reg-highlight, .bmg-style-accent { background-color: transparent !important; color: inherit !important; border: 1px solid rgba(148, 163, 184, 0.4) !important; border-left: 3px solid #f97316 !important; border-radius: 4px !important; padding: 1px 5px 1px 6px !important; font-weight: 700 !important; cursor: pointer !important; transition: all 0.2s ease !important; display: inline-block !important; pointer-events: auto !important; margin: 0 2px !important; box-shadow: 0 1px 2px rgba(0,0,0,0.05) !important; }
-            body[data-bmg-style="accent"] .bmg-reg-highlight:hover, .bmg-style-accent:hover { background-color: rgba(249, 115, 22, 0.15) !important; color: #f97316 !important; border-color: rgba(249, 115, 22, 0.4) !important; border-left-color: #ea580c !important; }
+            body[${attr}="saas"] ${cls} { background-color: var(--bmg-${pfx}-bg-15) !important; color: var(--bmg-${pfx}-color) !important; border: 1px solid var(--bmg-${pfx}-bg-35) !important; border-radius: 6px !important; padding: 1px 6px !important; letter-spacing: 0.5px !important; margin: 0 2px !important; }
+            body[${attr}="saas"][data-bmg-${pfx}-hover="true"] ${cls}:hover { background-color: var(--bmg-${pfx}-color) !important; color: #ffffff !important; }
 
-            /* 5. L-Hörn (Corner - Hybrid av Underline & Accent) */
-            body[data-bmg-style="corner"] .bmg-reg-highlight, .bmg-style-corner { background-color: rgba(249, 115, 22, 0.05) !important; color: inherit !important; border: none !important; border-left: 3px solid #f97316 !important; border-bottom: 2px solid #f97316 !important; border-radius: 0 3px 0 4px !important; padding: 0px 5px 1px 5px !important; font-weight: 800 !important; cursor: pointer !important; transition: all 0.18s ease !important; display: inline-block !important; pointer-events: auto !important; margin: 0 2px !important; }
-            body[data-bmg-style="corner"] .bmg-reg-highlight:hover, .bmg-style-corner:hover { background-color: rgba(249, 115, 22, 0.16) !important; color: #f97316 !important; }
+            /* 2. Underline */
+            body[${attr}="underline"] ${cls} { background-color: transparent !important; color: inherit !important; border-bottom: 2px solid var(--bmg-${pfx}-color) !important; padding: 0 2px !important; }
+            body[${attr}="underline"][data-bmg-${pfx}-hover="true"] ${cls}:hover { box-shadow: inset 0 -24px 0 var(--bmg-${pfx}-bg-15) !important; color: var(--bmg-${pfx}-color) !important; }
 
-            /* 6. Dubbelklammer (Bracket) */
-            body[data-bmg-style="bracket"] .bmg-reg-highlight, .bmg-style-bracket { background-color: transparent !important; color: inherit !important; border-top: 1px solid rgba(148, 163, 184, 0.28) !important; border-bottom: 1px solid rgba(148, 163, 184, 0.28) !important; border-left: 3px solid #f97316 !important; border-right: 3px solid #f97316 !important; border-radius: 4px !important; padding: 1px 6px !important; font-weight: 800 !important; cursor: pointer !important; transition: all 0.18s ease !important; display: inline-block !important; pointer-events: auto !important; margin: 0 2px !important; }
-            body[data-bmg-style="bracket"] .bmg-reg-highlight:hover, .bmg-style-bracket:hover { background-color: rgba(249, 115, 22, 0.14) !important; color: #f97316 !important; border-top-color: rgba(249, 115, 22, 0.4) !important; border-bottom-color: rgba(249, 115, 22, 0.4) !important; }
+            /* 3. Ghost (Ram) */
+            body[${attr}="ghost"] ${cls} { background-color: transparent !important; color: inherit !important; border: 1px dashed var(--bmg-${pfx}-color) !important; border-radius: 4px !important; padding: 1px 5px !important; margin: 0 2px !important; }
+            body[${attr}="ghost"][data-bmg-${pfx}-hover="true"] ${cls}:hover { background-color: var(--bmg-${pfx}-bg-15) !important; border-style: solid !important; color: var(--bmg-${pfx}-color) !important; }
 
-            /* 7. Överliggare (Topbar) */
-            body[data-bmg-style="topbar"] .bmg-reg-highlight, .bmg-style-topbar { background-color: transparent !important; color: inherit !important; border: 1px solid rgba(148, 163, 184, 0.35) !important; border-top: 2.5px solid #f97316 !important; border-radius: 4px !important; padding: 1px 6px !important; font-weight: 800 !important; cursor: pointer !important; transition: all 0.18s ease !important; display: inline-block !important; pointer-events: auto !important; margin: 0 2px !important; }
-            body[data-bmg-style="topbar"] .bmg-reg-highlight:hover, .bmg-style-topbar:hover { background-color: rgba(249, 115, 22, 0.14) !important; color: #f97316 !important; border-color: rgba(249, 115, 22, 0.4) !important; border-top-color: #ea580c !important; }
+            /* 4. Accent (Sidostreck) */
+            body[${attr}="accent"] ${cls} { background-color: transparent !important; color: inherit !important; border: 1px solid rgba(148, 163, 184, 0.4) !important; border-left: 3px solid var(--bmg-${pfx}-color) !important; border-radius: 4px !important; padding: 1px 5px 1px 6px !important; margin: 0 2px !important; }
+            body[${attr}="accent"][data-bmg-${pfx}-hover="true"] ${cls}:hover { background-color: var(--bmg-${pfx}-bg-15) !important; color: var(--bmg-${pfx}-color) !important; border-color: var(--bmg-${pfx}-bg-35) !important; border-left-color: var(--bmg-${pfx}-color) !important; }
 
-            /* 8. Statusprick (Pulse Dot) */
-            body[data-bmg-style="pulse"] .bmg-reg-highlight, .bmg-style-pulse { background-color: transparent !important; color: inherit !important; border: 1px solid rgba(148, 163, 184, 0.4) !important; border-radius: 5px !important; padding: 1px 6px 1px 5px !important; font-weight: 800 !important; cursor: pointer !important; transition: all 0.18s ease !important; display: inline-flex !important; align-items: center !important; gap: 5px !important; pointer-events: auto !important; margin: 0 2px !important; }
-            body[data-bmg-style="pulse"] .bmg-reg-highlight::before, .bmg-style-pulse::before { content: '' !important; width: 6px !important; height: 6px !important; border-radius: 50% !important; background-color: #f97316 !important; display: inline-block !important; flex-shrink: 0 !important; }
-            body[data-bmg-style="pulse"] .bmg-reg-highlight:hover, .bmg-style-pulse:hover { background-color: rgba(249, 115, 22, 0.14) !important; color: #f97316 !important; border-color: #f97316 !important; }
+            /* 5. Corner (L-Hörn) */
+            body[${attr}="corner"] ${cls} { background-color: var(--bmg-${pfx}-bg-06) !important; color: inherit !important; border: none !important; border-left: 3px solid var(--bmg-${pfx}-color) !important; border-bottom: 2px solid var(--bmg-${pfx}-color) !important; border-radius: 0 3px 0 4px !important; padding: 0px 5px 1px 5px !important; margin: 0 2px !important; }
+            body[${attr}="corner"][data-bmg-${pfx}-hover="true"] ${cls}:hover { background-color: var(--bmg-${pfx}-bg-15) !important; color: var(--bmg-${pfx}-color) !important; }
 
-            /* 9. EU-Skylt (Plate) */
-            body[data-bmg-style="plate"] .bmg-reg-highlight, .bmg-style-plate { background-color: #ffffff !important; color: #0f172a !important; border: 1px solid #94a3b8 !important; border-left: 5px solid #1d4ed8 !important; border-radius: 4px !important; padding: 1px 6px !important; font-weight: 900 !important; letter-spacing: 0.5px !important; cursor: pointer !important; transition: all 0.18s ease !important; display: inline-block !important; pointer-events: auto !important; margin: 0 2px !important; box-shadow: 0 1px 2px rgba(0,0,0,0.08) !important; }
-            body[data-bmg-style="plate"] .bmg-reg-highlight:hover, .bmg-style-plate:hover { border-color: #1d4ed8 !important; background-color: #eff6ff !important; color: #1e40af !important; }
+            /* 6. Bracket (Dubbelkant) */
+            body[${attr}="bracket"] ${cls} { background-color: transparent !important; color: inherit !important; border-top: 1px solid rgba(148, 163, 184, 0.28) !important; border-bottom: 1px solid rgba(148, 163, 184, 0.28) !important; border-left: 3px solid var(--bmg-${pfx}-color) !important; border-right: 3px solid var(--bmg-${pfx}-color) !important; border-radius: 4px !important; padding: 1px 6px !important; margin: 0 2px !important; }
+            body[${attr}="bracket"][data-bmg-${pfx}-hover="true"] ${cls}:hover { background-color: var(--bmg-${pfx}-bg-15) !important; color: var(--bmg-${pfx}-color) !important; }
 
-            /* 5. Exakt 1:1 klon av Chromes inbyggda högerklicksmeny */
-            #bmg-hover-bridge { position: fixed; z-index: 2147483647; min-width: 286px; background: #1f1f1f; border: none; border-radius: 12px; padding: 8px 0; box-shadow: 0 10px 28px rgba(0, 0, 0, 0.52), 0 2px 8px rgba(0, 0, 0, 0.28); font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; opacity: 0; pointer-events: none; transform: translateY(-2px); transition: opacity 0.1s ease, transform 0.1s ease; box-sizing: border-box; user-select: none; }
-            #bmg-hover-bridge.visible { opacity: 1; pointer-events: auto; transform: translateY(0); }
-            .bmg-hb-btn { width: calc(100% - 12px); margin: 0 6px; display: flex; align-items: center; background: transparent; border: none; border-radius: 6px; color: #e3e3e3; font-size: 13px; font-weight: 400; padding: 7px 14px; cursor: default; text-align: left; box-sizing: border-box; line-height: 1.35; white-space: nowrap; letter-spacing: 0.1px; }
-            .bmg-hb-btn:hover { background: #37393b; color: #ffffff; }
-            .bmg-hb-left { display: inline-flex; align-items: center; gap: 11px; }
-            .bmg-hb-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; display: inline-block; }
-            .bmg-hb-reg-inline { color: inherit; font-weight: 400; }
-            .bmg-hb-sep { height: 1px; background: #3c4043; margin: 7px 0; }
+            /* 7. Topbar (Överliggare) */
+            body[${attr}="topbar"] ${cls} { background-color: transparent !important; color: inherit !important; border: 1px solid rgba(148, 163, 184, 0.35) !important; border-top: 2.5px solid var(--bmg-${pfx}-color) !important; border-radius: 4px !important; padding: 1px 6px !important; margin: 0 2px !important; }
+            body[${attr}="topbar"][data-bmg-${pfx}-hover="true"] ${cls}:hover { background-color: var(--bmg-${pfx}-bg-15) !important; color: var(--bmg-${pfx}-color) !important; }
+
+            /* 8. Pulse (Prick) */
+            body[${attr}="pulse"] ${cls} { background-color: transparent !important; color: inherit !important; border: 1px solid rgba(148, 163, 184, 0.4) !important; border-radius: 5px !important; padding: 1px 6px 1px 5px !important; display: inline-flex !important; align-items: center !important; gap: 5px !important; margin: 0 2px !important; }
+            body[${attr}="pulse"] ${cls}::before { content: '' !important; width: 6px !important; height: 6px !important; border-radius: 50% !important; background-color: var(--bmg-${pfx}-color) !important; display: inline-block !important; flex-shrink: 0 !important; }
+            body[${attr}="pulse"][data-bmg-${pfx}-hover="true"] ${cls}:hover { background-color: var(--bmg-${pfx}-bg-15) !important; color: var(--bmg-${pfx}-color) !important; border-color: var(--bmg-${pfx}-color) !important; }
+
+            /* 9. Plate (EU-Skylt) */
+            body[${attr}="plate"] ${cls} { background-color: #ffffff !important; color: #0f172a !important; border: 1px solid #94a3b8 !important; border-left: 5px solid #1d4ed8 !important; border-radius: 4px !important; padding: 1px 6px !important; letter-spacing: 0.5px !important; margin: 0 2px !important; }
+            body[${attr}="plate"][data-bmg-${pfx}-hover="true"] ${cls}:hover { border-color: #1d4ed8 !important; background-color: #eff6ff !important; color: #1e40af !important; }
         `;
+        style.textContent = buildRules('data-bmg-style', '.bmg-reg-highlight', 'reg') + buildRules('data-bmg-vin-style', '.bmg-vin-highlight', 'vin');
         document.head.appendChild(style);
     }
 
-    let highlightObserver = null, isHighlightEnabled = true, isHoverMenuEnabled = true, currentHighlightStyle = 'saas';
+    let highlightObserver = null, isHighlightEnabled = true, isVinHighlightEnabled = true, isHoverMenuEnabled = true, currentHighlightStyle = 'saas';
     let hoverBridgeHost = null, hoverBridgeEl = null, hoverHideTimer = null, hoverShowTimer = null, activeHoverReg = '';
+    let regClickAction = 'copy', hoverOpenDelay = 120, enabledHoverButtons = ['search', 'bu-scrape', 'ci-direct', 'bu-direct'];
+    let vinClickAction = 'etka', vinCustomUrl = '';
+
+    let styleConfig = {
+        regStyle: 'saas', regColor: '#f97316', regBold: true, regUnderline: false, regHoverFx: true, regPointer: true,
+        vinStyle: 'underline', vinColor: '#3b82f6', vinBold: true, vinUnderline: false, vinMonospace: false, vinHoverFx: true
+    };
+
+    function applyHighlightTheme() {
+        if (!document.body) return;
+        const b = document.body;
+        b.setAttribute('data-bmg-style', styleConfig.regStyle);
+        b.setAttribute('data-bmg-reg-hover', String(styleConfig.regHoverFx));
+        b.style.setProperty('--bmg-reg-color', styleConfig.regColor);
+        b.style.setProperty('--bmg-reg-bg-06', hexToRgba(styleConfig.regColor, 0.06));
+        b.style.setProperty('--bmg-reg-bg-15', hexToRgba(styleConfig.regColor, 0.15));
+        b.style.setProperty('--bmg-reg-bg-35', hexToRgba(styleConfig.regColor, 0.35));
+        b.style.setProperty('--bmg-reg-weight', styleConfig.regBold ? '700' : 'inherit');
+        b.style.setProperty('--bmg-reg-deco', styleConfig.regUnderline ? 'underline' : 'inherit');
+        b.style.setProperty('--bmg-reg-cursor', styleConfig.regPointer ? 'pointer' : 'inherit');
+
+        b.setAttribute('data-bmg-vin-style', styleConfig.vinStyle);
+        b.setAttribute('data-bmg-vin-hover', String(styleConfig.vinHoverFx));
+        b.style.setProperty('--bmg-vin-color', styleConfig.vinColor);
+        b.style.setProperty('--bmg-vin-bg-06', hexToRgba(styleConfig.vinColor, 0.06));
+        b.style.setProperty('--bmg-vin-bg-15', hexToRgba(styleConfig.vinColor, 0.15));
+        b.style.setProperty('--bmg-vin-bg-35', hexToRgba(styleConfig.vinColor, 0.35));
+        b.style.setProperty('--bmg-vin-weight', styleConfig.vinBold ? '700' : 'inherit');
+        b.style.setProperty('--bmg-vin-deco', styleConfig.vinUnderline ? 'underline' : 'inherit');
+        b.style.setProperty('--bmg-vin-cursor', styleConfig.regPointer ? 'pointer' : 'inherit');
+        b.style.setProperty('--bmg-vin-font', styleConfig.vinMonospace ? 'ui-monospace, SFMono-Regular, Consolas, monospace' : 'inherit');
+    }
+
+    function updateHoverMenuButtons() {
+        if (!hoverBridgeEl) return;
+        hoverBridgeEl.querySelectorAll('.bmg-hb-btn').forEach(btn => {
+            btn.style.display = enabledHoverButtons.includes(btn.dataset.act) ? 'flex' : 'none';
+        });
+        const sep = hoverBridgeEl.querySelector('.bmg-hb-sep');
+        if (sep) {
+            const hasTop = enabledHoverButtons.includes('search') || enabledHoverButtons.includes('porsche');
+            const hasBottom = enabledHoverButtons.includes('bu-scrape') || enabledHoverButtons.includes('ci-direct') || enabledHoverButtons.includes('bu-direct');
+            sep.style.display = (hasTop && hasBottom) ? 'block' : 'none';
+        }
+    }
 
     function getHoverBridge() {
         if (hoverBridgeEl) return hoverBridgeEl;
@@ -1294,6 +1360,7 @@ if (!HOST.includes('oljemagasinet.se') && !HOST.includes('car.info') && !HOST.in
             });
         });
         document.documentElement.appendChild(hoverBridgeHost);
+        updateHoverMenuButtons();
         return hoverBridgeEl;
     }
 
@@ -1316,16 +1383,18 @@ if (!HOST.includes('oljemagasinet.se') && !HOST.includes('car.info') && !HOST.in
     }
 
     function showHoverBridge(targetSpan, cleanReg) {
-        if (!isHoverMenuEnabled || isCurrentHostBlacklisted()) return;
+        if (!isHoverMenuEnabled || isCurrentHostBlacklisted() || enabledHoverButtons.length === 0) return;
         clearTimeout(hoverHideTimer);
         clearTimeout(hoverShowTimer);
         hoverShowTimer = setTimeout(() => {
             activeHoverReg = cleanReg;
             const menu = getHoverBridge();
+            updateHoverMenuButtons();
             menu.querySelectorAll('[data-reg]').forEach(el => el.textContent = cleanReg);
             const rect = targetSpan.getBoundingClientRect();
-            const showAbove = (window.innerHeight - rect.bottom) < 185;
-            const topPos = showAbove ? (rect.top - 170) : (rect.bottom + 4);
+            const menuHeight = menu.offsetHeight || 150;
+            const showAbove = (window.innerHeight - rect.bottom) < (menuHeight + 16);
+            const topPos = showAbove ? (rect.top - menuHeight - 6) : (rect.bottom + 4);
             const menuWidth = 295;
             let leftPos = rect.left;
             if (leftPos + menuWidth > window.innerWidth - 12) {
@@ -1336,19 +1405,28 @@ if (!HOST.includes('oljemagasinet.se') && !HOST.includes('car.info') && !HOST.in
             menu.style.top = `${Math.max(topPos, 8)}px`;
             menu.style.left = `${leftPos}px`;
             menu.classList.add('visible');
-        }, 120);
+        }, hoverOpenDelay);
     }
 
     const SKIP_TAGS = new Set(['SCRIPT', 'STYLE', 'NOSCRIPT', 'TEXTAREA', 'INPUT', 'BUTTON', 'SELECT', 'OPTION', 'SVG', 'CODE', 'PRE', 'HEAD']);
+    const REG_PAT = '(?!(?:SEK|EUR|USD)\\s?)[A-Z]{3}\\s?[0-9]{2}[A-Z0-9](?!\\s*(?:kr|:-|[.,]\\d))';
+    const VIN_PAT = '(?=[A-HJ-NPR-Z0-9]*\\d)(?=[A-HJ-NPR-Z0-9]*[A-HJ-NPR-Z])[A-HJ-NPR-Z0-9]{17}';
+    const REG_ONLY_REGEX = new RegExp(`\\b(${REG_PAT})\\b`, 'g');
+    const VIN_ONLY_REGEX = new RegExp(`\\b(${VIN_PAT})\\b`, 'g');
+    const BOTH_HIGHLIGHT_REGEX = new RegExp(`\\b(?:(${VIN_PAT})|(${REG_PAT}))\\b`, 'g');
 
     function highlightRegNumbers(rootNode = document.body) {
-        if (!isHighlightEnabled || !rootNode) return;
+        if ((!isHighlightEnabled && !isVinHighlightEnabled) || !rootNode) return;
 
         // Om en enskild textnod skickas in från MutationObserver, gå upp till föräldern
         if (rootNode.nodeType === 3) rootNode = rootNode.parentElement;
-        if (!rootNode || SKIP_TAGS.has(rootNode.tagName) || rootNode.isContentEditable || rootNode.closest?.('#bmg-hover-bridge, .bmg-reg-highlight')) return;
+        if (!rootNode || SKIP_TAGS.has(rootNode.tagName) || rootNode.isContentEditable || rootNode.closest?.('#bmg-hover-bridge-host, .bmg-reg-highlight, .bmg-vin-highlight')) return;
 
-        const regex = /\b(?!(?:SEK|EUR|USD)\s?)[A-Z]{3}\s?[0-9]{2}[A-Z0-9]\b(?!\s*(?:kr|:-|\.\d|,\d))/g;
+        const regex = (isHighlightEnabled && isVinHighlightEnabled)
+            ? BOTH_HIGHLIGHT_REGEX
+            : (isHighlightEnabled ? REG_ONLY_REGEX : VIN_ONLY_REGEX);
+        const minLen = isHighlightEnabled ? 6 : 17;
+
         const walker = document.createTreeWalker(
             rootNode,
             NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT,
@@ -1358,17 +1436,18 @@ if (!HOST.includes('oljemagasinet.se') && !HOST.includes('car.info') && !HOST.in
                         if (
                             SKIP_TAGS.has(node.tagName) ||
                             node.isContentEditable ||
+                            node.id === 'bmg-hover-bridge-host' ||
                             node.id === 'bmg-hover-bridge' ||
                             node.id === 'os-radar-host' ||
-                            node.classList?.contains('bmg-reg-highlight')
+                            node.classList?.contains('bmg-reg-highlight') ||
+                            node.classList?.contains('bmg-vin-highlight')
                         ) {
                             return NodeFilter.FILTER_REJECT; // Hoppar över hela underträdet direkt!
                         }
                         return NodeFilter.FILTER_SKIP; // Gå vidare till barnnoderna
                     }
-                    // Snabb längdkoll före Regex (ett reg-nr är minst 6 tecken)
                     const val = node.nodeValue;
-                    if (!val || val.length < 6) return NodeFilter.FILTER_SKIP;
+                    if (!val || val.length < minLen) return NodeFilter.FILTER_SKIP;
                     regex.lastIndex = 0;
                     return regex.test(val) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP;
                 }
@@ -1387,9 +1466,14 @@ if (!HOST.includes('oljemagasinet.se') && !HOST.includes('car.info') && !HOST.in
                 matched = true; fragment.appendChild(document.createTextNode(text.substring(lastIndex, match.index)));
                 
                 const span = document.createElement('span'); 
-                const cleanReg = match[0].replace(/\s/g, '').toUpperCase();
-                span.className = 'bmg-reg-highlight';
-                span.dataset.reg = cleanReg;
+                const cleanVal = match[0].replace(/\s/g, '').toUpperCase();
+                if (cleanVal.length === 17) {
+                    span.className = 'bmg-vin-highlight';
+                    span.dataset.vin = cleanVal;
+                } else {
+                    span.className = 'bmg-reg-highlight';
+                    span.dataset.reg = cleanVal;
+                }
                 span.textContent = match[0];
                 fragment.appendChild(span); lastIndex = regex.lastIndex;
             }
@@ -1400,8 +1484,8 @@ if (!HOST.includes('oljemagasinet.se') && !HOST.includes('car.info') && !HOST.in
     let currentHoveredSpan = null;
 
     document.addEventListener('mouseover', (e) => {
-        const span = e.target.closest?.('.bmg-reg-highlight');
-        if (span && span !== currentHoveredSpan) {
+        const span = e.target.closest?.('.bmg-reg-highlight, .bmg-vin-highlight');
+        if (span && span.dataset.reg && span !== currentHoveredSpan) {
             currentHoveredSpan = span;
             showHoverBridge(span, span.dataset.reg);
         }
@@ -1419,16 +1503,95 @@ if (!HOST.includes('oljemagasinet.se') && !HOST.includes('car.info') && !HOST.in
     }, { passive: true });
 
     document.addEventListener('mousedown', (e) => {
+        if (e.target === hoverBridgeHost || e.composedPath().includes(hoverBridgeHost)) return;
         const span = e.target.closest?.('.bmg-reg-highlight');
         if (!span) return;
-        const cleanReg = span.dataset.reg;
         clearTimeout(hoverShowTimer);
         clearTimeout(hoverHideTimer);
         if (hoverBridgeEl) hoverBridgeEl.classList.remove('visible');
+
+        // KLICK PÅ CHASSINUMMER (VIN): Kopiera + valbar länk
+        if (span.dataset.vin) {
+            if (e.button === 0) {
+                if (vinClickAction === 'none') return;
+                e.preventDefault();
+                e.stopPropagation();
+                const cleanVin = span.dataset.vin;
+                navigator.clipboard.writeText(cleanVin);
+                const origText = span.textContent;
+                span.textContent = '✓ ' + cleanVin;
+                setTimeout(() => { span.textContent = origText; }, 700);
+
+                let targetUrl = '';
+                if (vinClickAction === 'etka') targetUrl = 'https://superetka.com/etka/';
+                else if (vinClickAction === 'ci') targetUrl = `https://www.car.info/sv-se/search?q=${cleanVin}`;
+                else if (vinClickAction === 'bu') targetUrl = `https://biluppgifter.se/fordon/${cleanVin}`;
+                else if (vinClickAction === 'porsche') targetUrl = `https://ph-veh-se03.cross.porscheinformatik.com/physical-vehicle/search?applicationName=SERVICE&conversation=1794303212235&prodFam=C3&q=${cleanVin.toLowerCase()}`;
+                else if (vinClickAction === '7zap') targetUrl = `https://7zap.com/en/search/?q=${cleanVin}`;
+                else if (vinClickAction === 'partsouq') targetUrl = `https://partsouq.com/en/search/all?q=${cleanVin}`;
+                else if (vinClickAction === 'trodo') targetUrl = `https://www.trodo.se/catalogsearch/result/?q=${cleanVin}`;
+                else if (vinClickAction === 'custom' && vinCustomUrl) {
+                    targetUrl = vinCustomUrl.includes('{vin}') ? vinCustomUrl.replace(/\{vin\}/gi, cleanVin) : (vinCustomUrl + cleanVin);
+                }
+
+                if (targetUrl) {
+                    chrome.runtime.sendMessage({
+                        action: 'OPEN_TAB_DIRECT',
+                        url: targetUrl,
+                        active: !e.ctrlKey && !e.metaKey
+                    });
+                }
+            } else if (e.button === 2) {
+                const sel = window.getSelection();
+                const range = document.createRange();
+                range.selectNodeContents(span);
+                sel.removeAllRanges();
+                sel.addRange(range);
+            }
+            return;
+        }
+
+        const cleanReg = span.dataset.reg;
         if (e.button === 0) {
+            if (regClickAction === 'none') return;
             e.preventDefault();
             e.stopPropagation();
-            chrome.runtime.sendMessage({ action: 'OPEN_POPUP_FOR_REG', regnr: cleanReg });
+            const openDirect = (url) => chrome.runtime.sendMessage({
+                action: 'OPEN_TAB_DIRECT',
+                url,
+                active: !e.ctrlKey && !e.metaKey
+            });
+
+            if (regClickAction === 'copy') {
+                navigator.clipboard.writeText(cleanReg);
+                const origText = span.textContent;
+                span.textContent = '✓ ' + cleanReg;
+                setTimeout(() => { span.textContent = origText; }, 700);
+            } else if (regClickAction === 'search') {
+                chrome.runtime.sendMessage({ action: 'OPEN_POPUP_FOR_REG', regnr: cleanReg });
+            } else if (regClickAction === 'combo-ci-om') {
+                chrome.runtime.sendMessage({ action: 'OPEN_POPUP_FOR_REG', regnr: cleanReg, engine: 'combo-ci-om' });
+            } else if (regClickAction === 'combo') {
+                chrome.runtime.sendMessage({ action: 'OPEN_POPUP_FOR_REG', regnr: cleanReg, engine: 'combo' });
+            } else if (regClickAction === 'ci-scrape') {
+                chrome.runtime.sendMessage({ action: 'OPEN_POPUP_FOR_REG', regnr: cleanReg, engine: 'ci' });
+            } else if (regClickAction === 'bu-scrape') {
+                chrome.runtime.sendMessage({ action: 'OPEN_POPUP_FOR_REG', regnr: cleanReg, engine: 'bu' });
+            } else if (regClickAction === 'om-scrape') {
+                chrome.runtime.sendMessage({ action: 'OPEN_POPUP_FOR_REG', regnr: cleanReg, engine: 'om' });
+            } else if (regClickAction === 'ts-scrape') {
+                chrome.runtime.sendMessage({ action: 'OPEN_POPUP_FOR_REG', regnr: cleanReg, engine: 'ts' });
+            } else if (regClickAction === 'ci-direct' || regClickAction === 'ci') {
+                openDirect(`https://www.car.info/sv-se/license-plate/S/${cleanReg}`);
+            } else if (regClickAction === 'bu-direct') {
+                openDirect(`https://biluppgifter.se/fordon/${cleanReg}`);
+            } else if (regClickAction === 'om-direct') {
+                openDirect(`https://www.oljemagasinet.se/index.php?route=product/search&search=${cleanReg}`);
+            } else if (regClickAction === 'ts-direct') {
+                openDirect('https://fordon-fu-regnr.transportstyrelsen.se/');
+            } else if (regClickAction === 'porsche-direct') {
+                openDirect(`https://ph-veh-se03.cross.porscheinformatik.com/physical-vehicle/search?applicationName=SERVICE&conversation=1794303212235&prodFam=C3&q=${cleanReg.toLowerCase()}`);
+            }
         } else if (e.button === 2) {
             const sel = window.getSelection();
             const range = document.createRange();
@@ -1439,7 +1602,7 @@ if (!HOST.includes('oljemagasinet.se') && !HOST.includes('car.info') && !HOST.in
     }, true);
 
     document.addEventListener('contextmenu', (e) => {
-        if (e.target.closest?.('.bmg-reg-highlight')) e.stopPropagation();
+        if (e.target.closest?.('.bmg-reg-highlight, .bmg-vin-highlight')) e.stopPropagation();
     }, true);
 
     let pendingNodes = new Set();
@@ -1456,7 +1619,7 @@ if (!HOST.includes('oljemagasinet.se') && !HOST.includes('car.info') && !HOST.in
 
     function flushHighlightQueue() {
         highlightScheduled = false;
-        if (!isHighlightEnabled) {
+        if (!isHighlightEnabled && !isVinHighlightEnabled) {
             pendingNodes.clear();
             return;
         }
@@ -1510,12 +1673,12 @@ if (!HOST.includes('oljemagasinet.se') && !HOST.includes('car.info') && !HOST.in
         if (highlightObserver) highlightObserver.disconnect();
         scheduleHighlight(document.body);
         highlightObserver = new MutationObserver((mutations) => {
-            if (!isHighlightEnabled) return;
+            if (!isHighlightEnabled && !isVinHighlightEnabled) return;
             for (const m of mutations) {
                 for (const node of m.addedNodes) {
-                    if (node.nodeType === 1 && !node.classList?.contains('bmg-reg-highlight') && node.id !== 'bmg-hover-bridge') {
+                    if (node.nodeType === 1 && !node.classList?.contains('bmg-reg-highlight') && !node.classList?.contains('bmg-vin-highlight') && node.id !== 'bmg-hover-bridge-host') {
                         scheduleHighlight(node);
-                    } else if (node.nodeType === 3 && node.parentElement && !node.parentElement.classList?.contains('bmg-reg-highlight')) {
+                    } else if (node.nodeType === 3 && node.parentElement && !node.parentElement.classList?.contains('bmg-reg-highlight') && !node.parentElement.classList?.contains('bmg-vin-highlight')) {
                         scheduleHighlight(node.parentElement);
                     }
                 }
@@ -1529,7 +1692,7 @@ if (!HOST.includes('oljemagasinet.se') && !HOST.includes('car.info') && !HOST.in
         viewportObserver.disconnect();
         pendingNodes.clear();
         if (hoverBridgeEl) hoverBridgeEl.classList.remove('visible');
-        document.querySelectorAll('.bmg-reg-highlight').forEach(span => {
+        document.querySelectorAll('.bmg-reg-highlight, .bmg-vin-highlight').forEach(span => {
             const parent = span.parentNode;
             if (parent) {
                 parent.replaceChild(document.createTextNode(span.textContent), span);
@@ -1538,38 +1701,84 @@ if (!HOST.includes('oljemagasinet.se') && !HOST.includes('car.info') && !HOST.in
         });
     }
 
-    chrome.storage.local.get(['os_highlight_enabled', 'os_highlight_style', 'os_hover_menu_enabled', 'os_hover_blacklist'], (res) => {
+    chrome.storage.local.get([
+        'os_highlight_enabled', 'os_vin_highlight_enabled', 'os_highlight_style', 'os_hover_menu_enabled',
+        'os_hover_blacklist', 'os_click_action', 'os_hover_delay', 'os_hover_buttons',
+        'os_reg_color', 'os_reg_bold', 'os_reg_underline', 'os_reg_hover_fx', 'os_reg_pointer',
+        'os_vin_click_action', 'os_vin_custom_url', 'os_vin_style', 'os_vin_color',
+        'os_vin_bold', 'os_vin_underline', 'os_vin_monospace', 'os_vin_hover_fx'
+    ], (res) => {
         isHoverMenuEnabled = res.os_hover_menu_enabled !== false;
+        regClickAction = res.os_click_action || 'copy';
+        hoverOpenDelay = res.os_hover_delay !== undefined ? parseInt(res.os_hover_delay, 10) : 120;
+        if (Array.isArray(res.os_hover_buttons)) enabledHoverButtons = res.os_hover_buttons;
         if (res.os_hover_blacklist) {
             hoverBlacklist = res.os_hover_blacklist.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
         }
-        currentHighlightStyle = res.os_highlight_style || 'saas';
-        if (document.body) document.body.setAttribute('data-bmg-style', currentHighlightStyle);
 
-        if (isHighlightEnabled = res.os_highlight_enabled !== false) {
+        vinClickAction = res.os_vin_click_action || 'etka';
+        vinCustomUrl = res.os_vin_custom_url || '';
+
+        styleConfig.regStyle = res.os_highlight_style || 'saas';
+        styleConfig.regColor = res.os_reg_color || '#f97316';
+        styleConfig.regBold = res.os_reg_bold !== false;
+        styleConfig.regUnderline = res.os_reg_underline === true;
+        styleConfig.regHoverFx = res.os_reg_hover_fx !== false;
+        styleConfig.regPointer = res.os_reg_pointer !== false;
+
+        styleConfig.vinStyle = res.os_vin_style || 'underline';
+        styleConfig.vinColor = res.os_vin_color || '#3b82f6';
+        styleConfig.vinBold = res.os_vin_bold !== false;
+        styleConfig.vinUnderline = res.os_vin_underline === true;
+        styleConfig.vinMonospace = res.os_vin_monospace === true;
+        styleConfig.vinHoverFx = res.os_vin_hover_fx !== false;
+
+        applyHighlightTheme();
+
+        isHighlightEnabled = res.os_highlight_enabled !== false;
+        isVinHighlightEnabled = res.os_vin_highlight_enabled !== false;
+        if (isHighlightEnabled || isVinHighlightEnabled) {
             startHighlightObserver();
         }
     });
 
     chrome.storage.onChanged.addListener((changes, ns) => {
         if (ns === 'local') {
-            if (changes.os_hover_menu_enabled !== undefined) {
-                isHoverMenuEnabled = changes.os_hover_menu_enabled.newValue !== false;
+            if (changes.os_hover_menu_enabled !== undefined) isHoverMenuEnabled = changes.os_hover_menu_enabled.newValue !== false;
+            if (changes.os_click_action !== undefined) regClickAction = changes.os_click_action.newValue || 'copy';
+            if (changes.os_hover_delay !== undefined) hoverOpenDelay = parseInt(changes.os_hover_delay.newValue, 10) || 0;
+            if (changes.os_hover_buttons !== undefined) {
+                enabledHoverButtons = changes.os_hover_buttons.newValue || [];
+                updateHoverMenuButtons();
             }
             if (changes.os_hover_blacklist !== undefined) {
                 const val = changes.os_hover_blacklist.newValue || '';
                 hoverBlacklist = val.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
             }
-            if (changes.os_highlight_style !== undefined) {
-                currentHighlightStyle = changes.os_highlight_style.newValue || 'saas';
-                if (document.body) document.body.setAttribute('data-bmg-style', currentHighlightStyle);
+            if (changes.os_vin_click_action !== undefined) vinClickAction = changes.os_vin_click_action.newValue || 'etka';
+            if (changes.os_vin_custom_url !== undefined) vinCustomUrl = changes.os_vin_custom_url.newValue || '';
+
+            const styleKeys = {
+                os_highlight_style: 'regStyle', os_reg_color: 'regColor', os_reg_bold: 'regBold',
+                os_reg_underline: 'regUnderline', os_reg_hover_fx: 'regHoverFx', os_reg_pointer: 'regPointer',
+                os_vin_style: 'vinStyle', os_vin_color: 'vinColor', os_vin_bold: 'vinBold',
+                os_vin_underline: 'vinUnderline', os_vin_monospace: 'vinMonospace', os_vin_hover_fx: 'vinHoverFx'
+            };
+            let themeUpdated = false;
+            for (const [storageKey, cfgKey] of Object.entries(styleKeys)) {
+                if (changes[storageKey] !== undefined) {
+                    styleConfig[cfgKey] = changes[storageKey].newValue;
+                    themeUpdated = true;
+                }
             }
-            if (changes.os_highlight_enabled !== undefined) {
-                isHighlightEnabled = changes.os_highlight_enabled.newValue !== false;
-                if (isHighlightEnabled) {
+            if (themeUpdated) applyHighlightTheme();
+
+            if (changes.os_highlight_enabled !== undefined || changes.os_vin_highlight_enabled !== undefined) {
+                if (changes.os_highlight_enabled !== undefined) isHighlightEnabled = changes.os_highlight_enabled.newValue !== false;
+                if (changes.os_vin_highlight_enabled !== undefined) isVinHighlightEnabled = changes.os_vin_highlight_enabled.newValue !== false;
+                unwrapAllHighlights();
+                if (isHighlightEnabled || isVinHighlightEnabled) {
                     startHighlightObserver();
-                } else {
-                    unwrapAllHighlights();
                 }
             }
         }
