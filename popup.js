@@ -166,7 +166,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (toggleVinHighlight) toggleVinHighlight.checked = res.os_vin_highlight_enabled !== false;
         if (clickActionSelect) clickActionSelect.value = res.os_click_action || 'copy';
         if (hoverDelaySelect) hoverDelaySelect.value = res.os_hover_delay !== undefined ? String(res.os_hover_delay) : '120';
-        const activeBtns = res.os_hover_buttons || ['search', 'bu-scrape', 'ci-direct', 'bu-direct'];
+        const activeBtns = Array.isArray(res.os_hover_buttons)
+            ? res.os_hover_buttons
+            : ['search', 'bu-scrape', 'ci-direct', 'bu-direct'];
         hoverBtnToggles.forEach(cb => { cb.checked = activeBtns.includes(cb.value); });
 
         if (regColorSelect) regColorSelect.value = res.os_reg_color || '#f97316';
@@ -223,47 +225,61 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    hoverBtnToggles.forEach(cb => {
-        cb.addEventListener('change', () => {
-            const selected = Array.from(hoverBtnToggles).filter(i => i.checked).map(i => i.value);
-            chrome.storage.local.set({ os_hover_buttons: selected });
-        });
+    // Stoppa alla klick inne i inställningspanelen från att bubbla upp till header-actions
+    document.getElementById('settings-panel')?.addEventListener('click', (e) => {
+        e.stopPropagation();
     });
-
-    chrome.storage.local.get(['os_vin_highlight_enabled', 'os_click_action', 'os_hover_delay', 'os_hover_buttons'], (res) => {
-        if (toggleVinHighlight) toggleVinHighlight.checked = res.os_vin_highlight_enabled !== false;
-        if (clickActionSelect) clickActionSelect.value = res.os_click_action || 'copy';
-        if (hoverDelaySelect) hoverDelaySelect.value = res.os_hover_delay !== undefined ? String(res.os_hover_delay) : '120';
-        const activeBtns = res.os_hover_buttons || ['search', 'bu-scrape', 'ci-direct', 'bu-direct'];
-        hoverBtnToggles.forEach(cb => {
-            cb.checked = activeBtns.includes(cb.value);
-        });
-    });
-
-    if (toggleVinHighlight) {
-        toggleVinHighlight.addEventListener('change', (e) => {
-            chrome.storage.local.set({ os_vin_highlight_enabled: e.target.checked });
-        });
-    }
-
-    if (clickActionSelect) {
-        clickActionSelect.addEventListener('change', (e) => {
-            chrome.storage.local.set({ os_click_action: e.target.value });
-        });
-    }
-
-    if (hoverDelaySelect) {
-        hoverDelaySelect.addEventListener('change', (e) => {
-            chrome.storage.local.set({ os_hover_delay: parseInt(e.target.value, 10) });
-        });
-    }
 
     hoverBtnToggles.forEach(cb => {
-        cb.addEventListener('change', () => {
-            const selected = Array.from(hoverBtnToggles).filter(i => i.checked).map(i => i.value);
-            chrome.storage.local.set({ os_hover_buttons: selected });
+        cb.addEventListener('change', (e) => {
+            e.stopPropagation();
+            const selected = Array.from(document.querySelectorAll('.hover-btn-toggle'))
+                .filter(i => i.checked)
+                .map(i => i.value);
+            chrome.storage.local.set({ 'os_hover_buttons': selected });
         });
     });
+
+    // Flik-navigering inne i Inställningar
+    document.querySelectorAll('.set-tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.set-tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.set-tab-pane').forEach(p => p.classList.add('hidden'));
+            btn.classList.add('active');
+            document.getElementById(btn.dataset.setTab)?.classList.remove('hidden');
+        });
+    });
+
+    // Dimma underinställningar när huvudfunktion är avstängd
+    const syncSubGroupState = (toggleId, groupId) => {
+        const toggleEl = document.getElementById(toggleId);
+        const groupEl = document.getElementById(groupId);
+        if (!toggleEl || !groupEl) return;
+        const update = () => groupEl.classList.toggle('is-disabled', !toggleEl.checked);
+        toggleEl.addEventListener('change', update);
+        setTimeout(update, 50);
+    };
+    syncSubGroupState('toggle-highlight', 'reg-sub-settings');
+    syncSubGroupState('toggle-vin-highlight', 'vin-sub-settings');
+    syncSubGroupState('toggle-hover-menu', 'hover-sub-settings');
+
+    // Live-förhandsvisning av VIN-stil i inställningarna
+    const updateVinPreview = () => {
+        const prev = document.getElementById('active-vin-preview');
+        if (!prev) return;
+        const st = vinStyleSelect ? vinStyleSelect.value : 'underline';
+        const col = vinColorSelect ? vinColorSelect.value : '#3b82f6';
+        prev.className = `prev-${st}`;
+        prev.style.borderColor = col;
+        prev.style.color = st === 'saas' ? col : '#0f172a';
+        prev.style.fontWeight = (vinBoldToggle && !vinBoldToggle.checked) ? '400' : '800';
+        prev.style.textDecoration = (vinUnderlineToggle && vinUnderlineToggle.checked) ? 'underline' : 'none';
+        prev.style.fontFamily = (vinMonospaceToggle && vinMonospaceToggle.checked) ? 'monospace' : 'inherit';
+    };
+    [vinStyleSelect, vinColorSelect, vinBoldToggle, vinUnderlineToggle, vinMonospaceToggle].forEach(el => {
+        if (el) el.addEventListener('change', updateVinPreview);
+    });
+    setTimeout(updateVinPreview, 60);
 
     const blacklistInput = document.getElementById('hover-blacklist-input');
     if (blacklistInput) {
