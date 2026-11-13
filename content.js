@@ -1220,9 +1220,10 @@ if (!HOST.includes('oljemagasinet.se') && !HOST.includes('car.info') && !HOST.in
         document.head.appendChild(style);
     }
 
-    let highlightObserver = null, isHighlightEnabled = true, isVinHighlightEnabled = true, isHoverMenuEnabled = true, currentHighlightStyle = 'saas';
-    let hoverBridgeHost = null, hoverBridgeEl = null, hoverHideTimer = null, hoverShowTimer = null, activeHoverReg = '';
+    let highlightObserver = null, isHighlightEnabled = true, isVinHighlightEnabled = true, isHoverMenuEnabled = true, isVinHoverMenuEnabled = true, currentHighlightStyle = 'saas';
+    let hoverBridgeHost = null, hoverBridgeEl = null, hoverHideTimer = null, hoverShowTimer = null, activeHoverReg = '', activeHoverVin = '', activeHoverMode = 'reg';
     let regClickAction = 'copy', hoverOpenDelay = 120, enabledHoverButtons = ['search', 'bu-scrape', 'ci-direct', 'bu-direct'];
+    let enabledVinHoverButtons = ['etka', 'etkaweb', '7zap', 'partsouq', 'copy'];
     let vinClickAction = 'etka', vinCustomUrl = '';
 
     let styleConfig = {
@@ -1257,14 +1258,24 @@ if (!HOST.includes('oljemagasinet.se') && !HOST.includes('car.info') && !HOST.in
 
     function updateHoverMenuButtons() {
         if (!hoverBridgeEl) return;
-        hoverBridgeEl.querySelectorAll('.bmg-hb-btn').forEach(btn => {
-            btn.style.display = enabledHoverButtons.includes(btn.dataset.act) ? 'flex' : 'none';
+        hoverBridgeEl.querySelectorAll('.bmg-hb-btn[data-type="reg"]').forEach(btn => {
+            btn.style.display = (activeHoverMode === 'reg' && enabledHoverButtons.includes(btn.dataset.act)) ? 'flex' : 'none';
         });
-        const sep = hoverBridgeEl.querySelector('.bmg-hb-sep');
-        if (sep) {
+        const sepReg = hoverBridgeEl.querySelector('.bmg-hb-sep[data-type="reg"]');
+        if (sepReg) {
             const hasTop = enabledHoverButtons.includes('search') || enabledHoverButtons.includes('porsche');
             const hasBottom = enabledHoverButtons.includes('bu-scrape') || enabledHoverButtons.includes('ci-direct') || enabledHoverButtons.includes('bu-direct');
-            sep.style.display = (hasTop && hasBottom) ? 'block' : 'none';
+            sepReg.style.display = (activeHoverMode === 'reg' && hasTop && hasBottom) ? 'block' : 'none';
+        }
+
+        hoverBridgeEl.querySelectorAll('.bmg-hb-btn[data-type="vin"]').forEach(btn => {
+            btn.style.display = (activeHoverMode === 'vin' && enabledVinHoverButtons.includes(btn.dataset.act)) ? 'flex' : 'none';
+        });
+        const sepVin = hoverBridgeEl.querySelector('.bmg-hb-sep[data-type="vin"]');
+        if (sepVin) {
+            const hasTopVin = enabledVinHoverButtons.includes('etka') || enabledVinHoverButtons.includes('etkaweb') || enabledVinHoverButtons.includes('porsche');
+            const hasBottomVin = enabledVinHoverButtons.includes('7zap') || enabledVinHoverButtons.includes('partsouq') || enabledVinHoverButtons.includes('copy');
+            sepVin.style.display = (activeHoverMode === 'vin' && hasTopVin && hasBottomVin) ? 'block' : 'none';
         }
     }
 
@@ -1292,21 +1303,43 @@ if (!HOST.includes('oljemagasinet.se') && !HOST.includes('car.info') && !HOST.in
         hoverBridgeEl = document.createElement('div');
         hoverBridgeEl.id = 'bmg-hover-bridge';
         hoverBridgeEl.innerHTML = `
-            <button class="bmg-hb-btn" data-act="search">
+            <!-- REG-NR KNAPPAR -->
+            <button class="bmg-hb-btn" data-type="reg" data-act="search">
                 <span class="bmg-hb-left"><span class="bmg-hb-dot" style="background:#f46524;"></span><span>Sök Fordon: '<span class="bmg-hb-reg-inline" data-reg></span>'</span></span>
             </button>
-            <button class="bmg-hb-btn" data-act="porsche">
+            <button class="bmg-hb-btn" data-type="reg" data-act="porsche">
                 <span class="bmg-hb-left"><span class="bmg-hb-dot" style="background:#0074e8;"></span><span>Öppna i Porsche Service: '<span class="bmg-hb-reg-inline" data-reg></span>'</span></span>
             </button>
-            <div class="bmg-hb-sep"></div>
-            <button class="bmg-hb-btn" data-act="bu-scrape">
+            <div class="bmg-hb-sep" data-type="reg"></div>
+            <button class="bmg-hb-btn" data-type="reg" data-act="bu-scrape">
                 <span class="bmg-hb-left"><span class="bmg-hb-dot" style="background:#00c853;"></span><span>Sök via Biluppgifter: '<span class="bmg-hb-reg-inline" data-reg></span>'</span></span>
             </button>
-            <button class="bmg-hb-btn" data-act="ci-direct">
+            <button class="bmg-hb-btn" data-type="reg" data-act="ci-direct">
                 <span class="bmg-hb-left"><span class="bmg-hb-dot" style="background:#ffffff;"></span><span>Öppna Car.info direkt: '<span class="bmg-hb-reg-inline" data-reg></span>'</span></span>
             </button>
-            <button class="bmg-hb-btn" data-act="bu-direct">
+            <button class="bmg-hb-btn" data-type="reg" data-act="bu-direct">
                 <span class="bmg-hb-left"><span class="bmg-hb-dot" style="background:#ffffff;"></span><span>Öppna Biluppgifter direkt: '<span class="bmg-hb-reg-inline" data-reg></span>'</span></span>
+            </button>
+
+            <!-- VIN KNAPPAR -->
+            <button class="bmg-hb-btn" data-type="vin" data-act="etka">
+                <span class="bmg-hb-left"><span class="bmg-hb-dot" style="background:#f46524;"></span><span>SuperETKA: '<span class="bmg-hb-reg-inline" data-vin></span>'</span></span>
+            </button>
+            <button class="bmg-hb-btn" data-type="vin" data-act="etkaweb">
+                <span class="bmg-hb-left"><span class="bmg-hb-dot" style="background:#3b82f6;"></span><span>ETKA: '<span class="bmg-hb-reg-inline" data-vin></span>'</span></span>
+            </button>
+            <button class="bmg-hb-btn" data-type="vin" data-act="porsche">
+                <span class="bmg-hb-left"><span class="bmg-hb-dot" style="background:#0074e8;"></span><span>Öppna i Porsche Service: '<span class="bmg-hb-reg-inline" data-vin></span>'</span></span>
+            </button>
+            <div class="bmg-hb-sep" data-type="vin"></div>
+            <button class="bmg-hb-btn" data-type="vin" data-act="7zap">
+                <span class="bmg-hb-left"><span class="bmg-hb-dot" style="background:#00c853;"></span><span>Öppna 7zap OEM: '<span class="bmg-hb-reg-inline" data-vin></span>'</span></span>
+            </button>
+            <button class="bmg-hb-btn" data-type="vin" data-act="partsouq">
+                <span class="bmg-hb-left"><span class="bmg-hb-dot" style="background:#ffffff;"></span><span>Öppna PartSouq: '<span class="bmg-hb-reg-inline" data-vin></span>'</span></span>
+            </button>
+            <button class="bmg-hb-btn" data-type="vin" data-act="copy">
+                <span class="bmg-hb-left"><span class="bmg-hb-dot" style="background:#94a3b8;"></span><span>Kopiera VIN: '<span class="bmg-hb-reg-inline" data-vin></span>'</span></span>
             </button>
         `;
 
@@ -1331,9 +1364,31 @@ if (!HOST.includes('oljemagasinet.se') && !HOST.includes('car.info') && !HOST.in
         hoverBridgeEl.querySelectorAll('.bmg-hb-btn').forEach(btn => {
             btn.addEventListener('mousedown', (e) => {
                 e.preventDefault(); e.stopPropagation();
-                if (!activeHoverReg) return;
                 const act = btn.dataset.act;
+                const type = btn.dataset.type;
                 hoverBridgeEl.classList.remove('visible');
+
+                if (type === 'vin') {
+                    if (!activeHoverVin) return;
+                    navigator.clipboard.writeText(activeHoverVin);
+                    let targetUrl = '';
+                    if (act === 'etka') targetUrl = 'https://superetka.com/etka/';
+                    else if (act === 'etkaweb') targetUrl = 'https://www.etka.com/etkaweb/';
+                    else if (act === 'porsche') targetUrl = `https://ph-veh-se03.cross.porscheinformatik.com/physical-vehicle/search?applicationName=SERVICE&conversation=1794303212235&prodFam=C3&q=${activeHoverVin.toLowerCase()}`;
+                    else if (act === '7zap') targetUrl = `https://7zap.com/en/search/?q=${activeHoverVin}`;
+                    else if (act === 'partsouq') targetUrl = `https://partsouq.com/en/search/all?q=${activeHoverVin}`;
+
+                    if (targetUrl) {
+                        chrome.runtime.sendMessage({
+                            action: 'OPEN_TAB_DIRECT',
+                            url: targetUrl,
+                            active: !e.ctrlKey && !e.metaKey
+                        });
+                    }
+                    return;
+                }
+
+                if (!activeHoverReg) return;
                 if (act === 'search') {
                     chrome.runtime.sendMessage({ action: 'OPEN_POPUP_FOR_REG', regnr: activeHoverReg });
                 } else if (act === 'bu-scrape') {
@@ -1382,15 +1437,27 @@ if (!HOST.includes('oljemagasinet.se') && !HOST.includes('car.info') && !HOST.in
         });
     }
 
-    function showHoverBridge(targetSpan, cleanReg) {
-        if (!isHoverMenuEnabled || isCurrentHostBlacklisted() || enabledHoverButtons.length === 0) return;
+    function showHoverBridge(targetSpan, cleanVal, mode = 'reg') {
+        if (isCurrentHostBlacklisted()) return;
+        if (mode === 'reg' && (!isHoverMenuEnabled || enabledHoverButtons.length === 0)) return;
+        if (mode === 'vin' && (!isVinHoverMenuEnabled || enabledVinHoverButtons.length === 0)) return;
+
         clearTimeout(hoverHideTimer);
         clearTimeout(hoverShowTimer);
         hoverShowTimer = setTimeout(() => {
-            activeHoverReg = cleanReg;
+            activeHoverMode = mode;
+            if (mode === 'vin') {
+                activeHoverVin = cleanVal;
+            } else {
+                activeHoverReg = cleanVal;
+            }
             const menu = getHoverBridge();
             updateHoverMenuButtons();
-            menu.querySelectorAll('[data-reg]').forEach(el => el.textContent = cleanReg);
+            if (mode === 'vin') {
+                menu.querySelectorAll('[data-vin]').forEach(el => el.textContent = cleanVal.substring(0, 8) + '…');
+            } else {
+                menu.querySelectorAll('[data-reg]').forEach(el => el.textContent = cleanVal);
+            }
             const rect = targetSpan.getBoundingClientRect();
             const menuHeight = menu.offsetHeight || 150;
             const showAbove = (window.innerHeight - rect.bottom) < (menuHeight + 16);
@@ -1485,9 +1552,13 @@ if (!HOST.includes('oljemagasinet.se') && !HOST.includes('car.info') && !HOST.in
 
     document.addEventListener('mouseover', (e) => {
         const span = e.target.closest?.('.bmg-reg-highlight, .bmg-vin-highlight');
-        if (span && span.dataset.reg && span !== currentHoveredSpan) {
+        if (span && span !== currentHoveredSpan) {
             currentHoveredSpan = span;
-            showHoverBridge(span, span.dataset.reg);
+            if (span.dataset.vin) {
+                showHoverBridge(span, span.dataset.vin, 'vin');
+            } else if (span.dataset.reg) {
+                showHoverBridge(span, span.dataset.reg, 'reg');
+            }
         }
     }, { passive: true });
 
@@ -1540,6 +1611,7 @@ if (!HOST.includes('oljemagasinet.se') && !HOST.includes('car.info') && !HOST.in
                     });
                 }
             } else if (e.button === 2) {
+                chrome.runtime.sendMessage({ action: 'SET_CONTEXT_TYPE', contextType: 'vin', val: span.dataset.vin });
                 const sel = window.getSelection();
                 const range = document.createRange();
                 range.selectNodeContents(span);
@@ -1591,11 +1663,25 @@ if (!HOST.includes('oljemagasinet.se') && !HOST.includes('car.info') && !HOST.in
                 openDirect(`https://ph-veh-se03.cross.porscheinformatik.com/physical-vehicle/search?applicationName=SERVICE&conversation=1794303212235&prodFam=C3&q=${cleanReg.toLowerCase()}`);
             }
         } else if (e.button === 2) {
+            chrome.runtime.sendMessage({ action: 'SET_CONTEXT_TYPE', contextType: 'reg', val: cleanReg });
             const sel = window.getSelection();
             const range = document.createRange();
             range.selectNodeContents(span);
             sel.removeAllRanges();
             sel.addRange(range);
+        }
+    }, true);
+
+    // Känn även av om användaren markerar vanlig omarkerad text manuellt och högerklickar
+    document.addEventListener('mousedown', (e) => {
+        if (e.button !== 2 || e.target.closest?.('.bmg-reg-highlight, .bmg-vin-highlight')) return;
+        const selText = (window.getSelection()?.toString() || '').replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+        if (selText.length === 17) {
+            chrome.runtime.sendMessage({ action: 'SET_CONTEXT_TYPE', contextType: 'vin', val: selText });
+        } else if (selText.length >= 4 && selText.length <= 6) {
+            chrome.runtime.sendMessage({ action: 'SET_CONTEXT_TYPE', contextType: 'reg', val: selText });
+        } else {
+            chrome.runtime.sendMessage({ action: 'SET_CONTEXT_TYPE', contextType: 'none', val: '' });
         }
     }, true);
 
@@ -1700,16 +1786,18 @@ if (!HOST.includes('oljemagasinet.se') && !HOST.includes('car.info') && !HOST.in
     }
 
     chrome.storage.local.get([
-        'os_highlight_enabled', 'os_vin_highlight_enabled', 'os_highlight_style', 'os_hover_menu_enabled',
-        'os_hover_blacklist', 'os_click_action', 'os_hover_delay', 'os_hover_buttons',
+        'os_highlight_enabled', 'os_vin_highlight_enabled', 'os_highlight_style', 'os_hover_menu_enabled', 'os_vin_hover_menu_enabled',
+        'os_hover_blacklist', 'os_click_action', 'os_hover_delay', 'os_hover_buttons', 'os_vin_hover_buttons',
         'os_reg_color', 'os_reg_bold', 'os_reg_underline', 'os_reg_hover_fx', 'os_reg_pointer',
         'os_vin_click_action', 'os_vin_custom_url', 'os_vin_style', 'os_vin_color',
         'os_vin_bold', 'os_vin_underline', 'os_vin_monospace', 'os_vin_hover_fx'
     ], (res) => {
         isHoverMenuEnabled = res.os_hover_menu_enabled !== false;
+        isVinHoverMenuEnabled = res.os_vin_hover_menu_enabled !== false;
         regClickAction = res.os_click_action || 'copy';
         hoverOpenDelay = res.os_hover_delay !== undefined ? parseInt(res.os_hover_delay, 10) : 120;
         if (Array.isArray(res.os_hover_buttons)) enabledHoverButtons = res.os_hover_buttons;
+        if (Array.isArray(res.os_vin_hover_buttons)) enabledVinHoverButtons = res.os_vin_hover_buttons;
         if (res.os_hover_blacklist) {
             hoverBlacklist = res.os_hover_blacklist.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
         }
@@ -1743,10 +1831,15 @@ if (!HOST.includes('oljemagasinet.se') && !HOST.includes('car.info') && !HOST.in
     chrome.storage.onChanged.addListener((changes, ns) => {
         if (ns === 'local') {
             if (changes.os_hover_menu_enabled !== undefined) isHoverMenuEnabled = changes.os_hover_menu_enabled.newValue !== false;
+            if (changes.os_vin_hover_menu_enabled !== undefined) isVinHoverMenuEnabled = changes.os_vin_hover_menu_enabled.newValue !== false;
             if (changes.os_click_action !== undefined) regClickAction = changes.os_click_action.newValue || 'copy';
             if (changes.os_hover_delay !== undefined) hoverOpenDelay = parseInt(changes.os_hover_delay.newValue, 10) || 0;
             if (changes.os_hover_buttons !== undefined) {
                 enabledHoverButtons = changes.os_hover_buttons.newValue || [];
+                updateHoverMenuButtons();
+            }
+            if (changes.os_vin_hover_buttons !== undefined) {
+                enabledVinHoverButtons = changes.os_vin_hover_buttons.newValue || [];
                 updateHoverMenuButtons();
             }
             if (changes.os_hover_blacklist !== undefined) {
