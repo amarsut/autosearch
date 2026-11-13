@@ -68,6 +68,13 @@
                         </label>
                         <label class="setting-card">
                             <div class="setting-text">
+                                <span class="setting-main">Markera chassinr (VIN)</span>
+                                <span class="setting-sub">Klick kopierar chassinr och öppnar SuperETKA</span>
+                            </div>
+                            <div class="toggle-switch"><input type="checkbox" id="toggle-vin-highlight" checked><div class="slider"></div></div>
+                        </label>
+                        <label class="setting-card">
+                            <div class="setting-text">
                                 <span class="setting-main">Hover-meny</span>
                                 <span class="setting-sub">Visa snabbmeny vid hovring på registreringsnummer</span>
                             </div>
@@ -80,6 +87,50 @@
                             </div>
                             <div class="toggle-switch"><input type="checkbox" id="toggle-autosearch" checked><div class="slider"></div></div>
                         </label>
+                        <div class="setting-card">
+                            <div class="setting-text">
+                                <span class="setting-main">Klick på markerat reg-nr</span>
+                                <span class="setting-sub">Åtgärd vid vänsterklick direkt på numret</span>
+                            </div>
+                            <select id="click-action-select" class="settings-select">
+                                <option value="copy" selected>Kopiera reg-nr</option>
+                                <option value="search">Sök i AutoSearch (Standardkälla)</option>
+                                <option value="combo-ci-om">Sök Kombo (CI + OM)</option>
+                                <option value="combo">Sök Kombo (BU + OM)</option>
+                                <option value="ci-scrape">Skrapa Car.info</option>
+                                <option value="bu-scrape">Skrapa Biluppgifter</option>
+                                <option value="om-scrape">Skrapa Oljemagasinet</option>
+                                <option value="ts-scrape">Skrapa Transportstyrelsen</option>
+                                <option value="ci-direct">Öppna Car.info direkt</option>
+                                <option value="bu-direct">Öppna Biluppgifter direkt</option>
+                                <option value="om-direct">Öppna Oljemagasinet direkt</option>
+                                <option value="ts-direct">Öppna Transportstyrelsen direkt</option>
+                                <option value="porsche-direct">Öppna Porsche Service direkt</option>
+                                <option value="none">Gör ingenting</option>
+                            </select>
+                        </div>
+                        <div class="setting-card">
+                            <div class="setting-text">
+                                <span class="setting-main">Fördröjning (Hover-meny)</span>
+                                <span class="setting-sub">Hur snabbt menyn öppnas vid hovring</span>
+                            </div>
+                            <select id="hover-delay-select" class="settings-select">
+                                <option value="0">Direkt (0 ms)</option>
+                                <option value="120" selected>Snabb (120 ms)</option>
+                                <option value="300">Normal (300 ms)</option>
+                                <option value="500">Seg (500 ms)</option>
+                            </select>
+                        </div>
+                        <div class="setting-card-block">
+                            <span class="setting-main" style="margin-bottom:8px; display:block;">Knappar i Hover-menyn</span>
+                            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px; font-size:12px; color:#334155; font-weight:600;">
+                                <label style="display:flex; align-items:center; gap:6px; cursor:pointer;"><input type="checkbox" class="hover-btn-toggle" value="search" checked> Sök Fordon</label>
+                                <label style="display:flex; align-items:center; gap:6px; cursor:pointer;"><input type="checkbox" class="hover-btn-toggle" value="porsche"> Porsche Service</label>
+                                <label style="display:flex; align-items:center; gap:6px; cursor:pointer;"><input type="checkbox" class="hover-btn-toggle" value="bu-scrape" checked> Sök Biluppgifter</label>
+                                <label style="display:flex; align-items:center; gap:6px; cursor:pointer;"><input type="checkbox" class="hover-btn-toggle" value="ci-direct" checked> Car.info direkt</label>
+                                <label style="display:flex; align-items:center; gap:6px; cursor:pointer;"><input type="checkbox" class="hover-btn-toggle" value="bu-direct" checked> Biluppgifter direkt</label>
+                            </div>
+                        </div>
                         <div class="setting-card-block">
                             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
                                 <span class="setting-main">Svartlistade domäner (Hover-meny)</span>
@@ -87,14 +138,16 @@
                             </div>
                             <input type="text" id="hover-blacklist-input" placeholder="t.ex. blocket.se, localhost" class="settings-text-input">
                         </div>
+                        <!-- ANPASSNING FÖR REG-NR -->
                         <div class="setting-card-block">
-                            <span class="setting-main" style="margin-bottom:6px; display:block;">Stil för sidomarkering</span>
-                            <div class="custom-select-wrapper" id="highlight-style-wrapper">
+                            <span class="setting-main" style="margin-bottom:6px; display:block;">Utseende: Reg-nr</span>
+                            <div class="custom-select-wrapper" id="highlight-style-wrapper" style="margin-bottom:8px;">
                                 <div class="custom-select-trigger" id="highlight-style-trigger">
                                     <span id="active-style-preview" class="prev-saas">ABC123</span>
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
                                 </div>
                                 <div class="custom-select-options hidden" id="highlight-style-options">
+                                    <div class="style-list-item" data-style="none" data-class="prev-none"><span class="prev-none">ABC123</span><span class="style-name">Osynlig (Ingen markering)</span></div>
                                     <div class="style-list-item" data-style="saas" data-class="prev-saas"><span class="prev-saas">ABC123</span><span class="style-name">SaaS Badge</span></div>
                                     <div class="style-list-item" data-style="underline" data-class="prev-underline"><span class="prev-underline">ABC123</span><span class="style-name">Underline</span></div>
                                     <div class="style-list-item" data-style="ghost" data-class="prev-ghost"><span class="prev-ghost">ABC123</span><span class="style-name">Ghost (Ram)</span></div>
@@ -105,6 +158,74 @@
                                     <div class="style-list-item" data-style="pulse" data-class="prev-pulse"><span class="prev-pulse">ABC123</span><span class="style-name">Pulse (Prick)</span></div>
                                     <div class="style-list-item" data-style="plate" data-class="prev-plate"><span class="prev-plate">ABC123</span><span class="style-name">Plate (EU-Skylt)</span></div>
                                 </div>
+                            </div>
+                            <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:8px;">
+                                <span style="font-size:11px; color:#64748b; font-weight:600;">Färg (Reg-nr)</span>
+                                <select id="reg-color-select" class="settings-select" style="padding:4px 8px; font-size:11px;">
+                                    <option value="#f97316" selected>Orange (Standard)</option>
+                                    <option value="#3b82f6">Blå</option>
+                                    <option value="#10b981">Grön</option>
+                                    <option value="#ef4444">Röd</option>
+                                    <option value="#8b5cf6">Lila</option>
+                                    <option value="#64748b">Diskret Grå</option>
+                                </select>
+                            </div>
+                            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px; font-size:11px; color:#334155; font-weight:600;">
+                                <label style="display:flex; align-items:center; gap:5px; cursor:pointer;"><input type="checkbox" id="reg-bold-toggle" checked> Fetstil (Bold)</label>
+                                <label style="display:flex; align-items:center; gap:5px; cursor:pointer;"><input type="checkbox" id="reg-underline-toggle"> Extra Understrykning</label>
+                                <label style="display:flex; align-items:center; gap:5px; cursor:pointer;"><input type="checkbox" id="reg-hover-fx-toggle" checked> Hovringseffekt</label>
+                                <label style="display:flex; align-items:center; gap:5px; cursor:pointer;"><input type="checkbox" id="reg-pointer-toggle" checked> Hand-muspekare</label>
+                            </div>
+                        </div>
+
+                        <!-- ANPASSNING FÖR CHASSINR (VIN) -->
+                        <div class="setting-card-block">
+                            <span class="setting-main" style="margin-bottom:6px; display:block;">Utseende & Klick: Chassinr (VIN)</span>
+                            <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:8px;">
+                                <span style="font-size:11px; color:#64748b; font-weight:600;">Klick på VIN</span>
+                                <select id="vin-click-action-select" class="settings-select" style="padding:4px 8px; font-size:11px; max-width:190px;">
+                                    <option value="etka" selected>Kopiera + SuperETKA</option>
+                                    <option value="copy">Endast kopiera VIN</option>
+                                    <option value="ci">Kopiera + Car.info</option>
+                                    <option value="bu">Kopiera + Biluppgifter</option>
+                                    <option value="porsche">Kopiera + Porsche Service</option>
+                                    <option value="7zap">Kopiera + 7zap OEM</option>
+                                    <option value="partsouq">Kopiera + PartSouq</option>
+                                    <option value="trodo">Kopiera + Trodo</option>
+                                    <option value="custom">Kopiera + Egen URL</option>
+                                    <option value="none">Gör ingenting</option>
+                                </select>
+                            </div>
+                            <input type="text" id="vin-custom-url-input" placeholder="Egen URL, t.ex. https://sida.se/?q={vin}" class="settings-text-input hidden" style="margin-bottom:8px; font-size:11px;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:8px;">
+                                <span style="font-size:11px; color:#64748b; font-weight:600;">Stil (VIN)</span>
+                                <select id="vin-style-select" class="settings-select" style="padding:4px 8px; font-size:11px;">
+                                    <option value="none">Osynlig (Ingen markering)</option>
+                                    <option value="underline" selected>Underline</option>
+                                    <option value="accent">Accent (Sidostreck)</option>
+                                    <option value="corner">Corner (L-Hörn)</option>
+                                    <option value="bracket">Bracket (Dubbelkant)</option>
+                                    <option value="ghost">Ghost (Streckad ram)</option>
+                                    <option value="saas">SaaS Badge</option>
+                                    <option value="topbar">Topbar (Överliggare)</option>
+                                </select>
+                            </div>
+                            <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:8px;">
+                                <span style="font-size:11px; color:#64748b; font-weight:600;">Färg (VIN)</span>
+                                <select id="vin-color-select" class="settings-select" style="padding:4px 8px; font-size:11px;">
+                                    <option value="#3b82f6" selected>Blå (Standard VIN)</option>
+                                    <option value="#f97316">Orange</option>
+                                    <option value="#10b981">Grön</option>
+                                    <option value="#ef4444">Röd</option>
+                                    <option value="#8b5cf6">Lila</option>
+                                    <option value="#64748b">Diskret Grå</option>
+                                </select>
+                            </div>
+                            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px; font-size:11px; color:#334155; font-weight:600;">
+                                <label style="display:flex; align-items:center; gap:5px; cursor:pointer;"><input type="checkbox" id="vin-bold-toggle" checked> Fetstil (Bold)</label>
+                                <label style="display:flex; align-items:center; gap:5px; cursor:pointer;"><input type="checkbox" id="vin-underline-toggle"> Extra Understrykning</label>
+                                <label style="display:flex; align-items:center; gap:5px; cursor:pointer;"><input type="checkbox" id="vin-monospace-toggle"> Monospace-typsnitt</label>
+                                <label style="display:flex; align-items:center; gap:5px; cursor:pointer;"><input type="checkbox" id="vin-hover-fx-toggle" checked> Hovringseffekt</label>
                             </div>
                         </div>
                     </div>
