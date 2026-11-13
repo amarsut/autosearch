@@ -172,45 +172,91 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === 'OPEN_TAB_DIRECT') {
         chrome.tabs.create({ url: request.url, active: request.active !== false });
     }
+
+    if (request.action === 'SET_CONTEXT_TYPE') {
+        lastRightClickVal = request.val || '';
+        updateContextMenuVisibility(request.contextType);
+    }
 });
 
 // ==========================================
 // HÖGERKLICK (Får använda den vanliga dropdown-menyn)
 // ==========================================
+let currentContextType = 'reg';
+let lastRightClickVal = '';
+let cachedRegBtns = ['search', 'bu-scrape', 'ci-direct', 'bu-direct'];
+let cachedVinBtns = ['etka', 'etkaweb', '7zap', 'partsouq', 'copy'];
+let cachedMenuMode = 'submenu';
+
+const REG_MENU_ITEMS = [
+    { key: 'search', id: 'bmg-search-reg', title: "🟠  Sök Fordon: '%s'" },
+    { key: 'porsche', id: 'porsche-search-reg', title: "🔵  Porsche Service: '%s'" },
+    { key: 'bu-scrape', id: 'bmg-search-bu', title: "🟢  Sök via Biluppgifter: '%s'" },
+    { key: 'ci-direct', id: 'open-ci-direct', title: "⚪  Öppna Car.info direkt: '%s'" },
+    { key: 'bu-direct', id: 'open-bu-direct', title: "⚪  Öppna Biluppgifter direkt: '%s'" }
+];
+
+const VIN_MENU_ITEMS = [
+    { key: 'etka', id: 'vin-open-etka', title: "🟠  SuperETKA: '%s'" },
+    { key: 'etkaweb', id: 'vin-open-etkaweb', title: "🔵  ETKA: '%s'" },
+    { key: 'porsche', id: 'vin-open-porsche', title: "🔵  Porsche Service: '%s'" },
+    { key: '7zap', id: 'vin-open-7zap', title: "🟢  7zap OEM: '%s'" },
+    { key: 'partsouq', id: 'vin-open-partsouq', title: "⚪  PartSouq: '%s'" }
+];
+
+function updateContextMenuVisibility(type = currentContextType) {
+    currentContextType = type;
+    if (cachedMenuMode === 'direct') return;
+
+    const showReg = type === 'reg';
+    const showVin = type === 'vin';
+
+    REG_MENU_ITEMS.forEach(item => {
+        chrome.contextMenus.update(item.id, {
+            visible: showReg && cachedRegBtns.includes(item.key)
+        }, () => { void chrome.runtime.lastError; });
+    });
+
+    VIN_MENU_ITEMS.forEach(item => {
+        chrome.contextMenus.update(item.id, {
+            visible: showVin && cachedVinBtns.includes(item.key)
+        }, () => { void chrome.runtime.lastError; });
+    });
+}
+
 function rebuildContextMenus() {
-    chrome.storage.local.get(['os_context_menu_mode', 'os_hover_buttons'], (res) => {
-        const mode = res.os_context_menu_mode || 'submenu';
-        // Porsche exkluderad som standard
-        const activeBtns = Array.isArray(res.os_hover_buttons)
+    chrome.storage.local.get(['os_context_menu_mode', 'os_hover_buttons', 'os_vin_hover_buttons'], (res) => {
+        cachedMenuMode = res.os_context_menu_mode || 'submenu';
+        cachedRegBtns = Array.isArray(res.os_hover_buttons)
             ? res.os_hover_buttons
             : ['search', 'bu-scrape', 'ci-direct', 'bu-direct'];
+        cachedVinBtns = Array.isArray(res.os_vin_hover_buttons)
+            ? res.os_vin_hover_buttons
+            : ['etka', 'etkaweb', '7zap', 'partsouq', 'copy'];
 
         chrome.contextMenus.removeAll(() => {
-            if (mode === 'direct') {
+            if (cachedMenuMode === 'direct') {
                 chrome.contextMenus.create({ id: "bmg-search-reg", title: "Sök Fordon: '%s'", contexts: ["selection"] });
                 chrome.contextMenus.create({ id: "bmg-scan-image", title: "Skanna Reg-nr från bild", contexts: ["image"] });
             } else {
-                const hasTop = activeBtns.includes('search') || activeBtns.includes('porsche');
-                const hasBottom = activeBtns.includes('bu-scrape') || activeBtns.includes('ci-direct') || activeBtns.includes('bu-direct');
+                REG_MENU_ITEMS.forEach(item => {
+                    chrome.contextMenus.create({
+                        id: item.id,
+                        title: item.title,
+                        contexts: ["selection"],
+                        visible: currentContextType === 'reg' && cachedRegBtns.includes(item.key)
+                    });
+                });
 
-                if (activeBtns.includes('search')) {
-                    chrome.contextMenus.create({ id: "bmg-search-reg", title: "🟠  Sök Fordon: '%s'", contexts: ["selection"] });
-                }
-                if (activeBtns.includes('porsche')) {
-                    chrome.contextMenus.create({ id: "porsche-search-reg", title: "🔵  Öppna i Porsche Service: '%s'", contexts: ["selection"] });
-                }
-                if (hasTop && hasBottom) {
-                    chrome.contextMenus.create({ id: "bmg-sep-1", type: "separator", contexts: ["selection"] });
-                }
-                if (activeBtns.includes('bu-scrape')) {
-                    chrome.contextMenus.create({ id: "bmg-search-bu", title: "🟢  Sök via Biluppgifter: '%s'", contexts: ["selection"] });
-                }
-                if (activeBtns.includes('ci-direct')) {
-                    chrome.contextMenus.create({ id: "open-ci-direct", title: "⚪  Öppna Car.info direkt: '%s'", contexts: ["selection"] });
-                }
-                if (activeBtns.includes('bu-direct')) {
-                    chrome.contextMenus.create({ id: "open-bu-direct", title: "⚪  Öppna Biluppgifter direkt: '%s'", contexts: ["selection"] });
-                }
+                VIN_MENU_ITEMS.forEach(item => {
+                    chrome.contextMenus.create({
+                        id: item.id,
+                        title: item.title,
+                        contexts: ["selection"],
+                        visible: currentContextType === 'vin' && cachedVinBtns.includes(item.key)
+                    });
+                });
+
                 chrome.contextMenus.create({ id: "bmg-scan-image", title: "🟠  Skanna Reg-nr från bild", contexts: ["image"] });
             }
         });
@@ -221,7 +267,7 @@ chrome.runtime.onInstalled.addListener(rebuildContextMenus);
 chrome.runtime.onStartup.addListener(rebuildContextMenus);
 
 chrome.storage.onChanged.addListener((changes, ns) => {
-    if (ns === 'local' && (changes.os_context_menu_mode || changes.os_hover_buttons)) {
+    if (ns === 'local' && (changes.os_context_menu_mode || changes.os_hover_buttons || changes.os_vin_hover_buttons)) {
         rebuildContextMenus();
     }
 });
@@ -232,20 +278,57 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
         return;
     }
 
-    const rawText = info.selectionText || "";
-    const regnr = rawText.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
-    if (regnr.length < 4 || regnr.length > 6) return;
+    const rawText = info.selectionText || lastRightClickVal || "";
+    const cleanStr = rawText.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+    if (!cleanStr) return;
+
+    // Kopiera automatiskt chassinumret till urklipp när man väljer ett VIN-alternativ via högerklick
+    const copyToTabClipboard = (text) => {
+        if (tab && tab.id) {
+            chrome.scripting.executeScript({
+                target: { tabId: tab.id },
+                func: (v) => navigator.clipboard.writeText(v).catch(() => {}),
+                args: [text]
+            }).catch(() => {});
+        }
+    };
+
+    if (info.menuItemId === "porsche-search-reg" || info.menuItemId === "vin-open-porsche") {
+        if (cleanStr.length === 17) copyToTabClipboard(cleanStr);
+        chrome.tabs.create({ url: `https://ph-veh-se03.cross.porscheinformatik.com/physical-vehicle/search?applicationName=SERVICE&conversation=1794303212235&prodFam=C3&q=${cleanStr.toLowerCase()}`, active: true });
+        return;
+    }
+
+    // VIN-specifika val
+    if (info.menuItemId === "vin-open-etka") {
+        copyToTabClipboard(cleanStr);
+        chrome.tabs.create({ url: 'https://superetka.com/etka/', active: true });
+        return;
+    } else if (info.menuItemId === "vin-open-etkaweb") {
+        copyToTabClipboard(cleanStr);
+        chrome.tabs.create({ url: 'https://www.etka.com/etkaweb/', active: true });
+        return;
+    } else if (info.menuItemId === "vin-open-7zap") {
+        copyToTabClipboard(cleanStr);
+        chrome.tabs.create({ url: `https://7zap.com/en/search/?q=${cleanStr}`, active: true });
+        return;
+    } else if (info.menuItemId === "vin-open-partsouq") {
+        copyToTabClipboard(cleanStr);
+        chrome.tabs.create({ url: `https://partsouq.com/en/search/all?q=${cleanStr}`, active: true });
+        return;
+    }
+
+    // Reg-nr val
+    if (cleanStr.length < 4 || cleanStr.length > 6) return;
 
     if (info.menuItemId === "bmg-search-reg") {
-        chrome.storage.local.set({ 'pending_context_search': regnr }, openDropdownPopup);
+        chrome.storage.local.set({ 'pending_context_search': cleanStr }, openDropdownPopup);
     } else if (info.menuItemId === "bmg-search-bu") {
-        chrome.storage.local.set({ 'pending_context_search': regnr, 'pending_context_engine': 'bu' }, openDropdownPopup);
-    } else if (info.menuItemId === "porsche-search-reg") {
-        chrome.tabs.create({ url: `https://ph-veh-se03.cross.porscheinformatik.com/physical-vehicle/search?applicationName=SERVICE&conversation=1794303212235&prodFam=C3&q=${regnr.toLowerCase()}`, active: true });
+        chrome.storage.local.set({ 'pending_context_search': cleanStr, 'pending_context_engine': 'bu' }, openDropdownPopup);
     } else if (info.menuItemId === "open-ci-direct") {
-        chrome.tabs.create({ url: `https://www.car.info/sv-se/license-plate/S/${regnr}`, active: true });
+        chrome.tabs.create({ url: `https://www.car.info/sv-se/license-plate/S/${cleanStr}`, active: true });
     } else if (info.menuItemId === "open-bu-direct") {
-        chrome.tabs.create({ url: `https://biluppgifter.se/fordon/${regnr}`, active: true });
+        chrome.tabs.create({ url: `https://biluppgifter.se/fordon/${cleanStr}`, active: true });
     }
 });
 
