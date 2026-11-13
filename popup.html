@@ -57,17 +57,17 @@
                     <span class="settings-header-title">Inställningar</span>
                 </div>
 
-                <!-- Segmented Control (Flikar) -->
+                <!-- Segmented Control (Flikar) - System förvald -->
                 <div class="settings-tabs-bar">
-                    <button type="button" class="set-tab-btn active" data-set-tab="set-pane-reg">Reg-nr</button>
+                    <button type="button" class="set-tab-btn" data-set-tab="set-pane-reg">Reg-nr</button>
                     <button type="button" class="set-tab-btn" data-set-tab="set-pane-vin">Chassinr</button>
                     <button type="button" class="set-tab-btn" data-set-tab="set-pane-hover">Hover & Menyer</button>
-                    <button type="button" class="set-tab-btn" data-set-tab="set-pane-sys">System</button>
+                    <button type="button" class="set-tab-btn active" data-set-tab="set-pane-sys">System</button>
                 </div>
 
                 <div class="settings-scroll-body">
                     <!-- FLIK 1: REG-NR -->
-                    <div id="set-pane-reg" class="set-tab-pane active">
+                    <div id="set-pane-reg" class="set-tab-pane hidden">
                         <label class="setting-card">
                             <div class="setting-text">
                                 <span class="setting-main">Markera reg-nr</span>
@@ -260,7 +260,7 @@
                     </div>
 
                     <!-- FLIK 4: SYSTEM & VERKTYG -->
-                    <div id="set-pane-sys" class="set-tab-pane hidden">
+                    <div id="set-pane-sys" class="set-tab-pane active">
                         <div class="setting-card">
                             <div class="setting-text">
                                 <span class="setting-main">Standardsökning</span>
