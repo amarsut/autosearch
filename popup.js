@@ -241,14 +241,25 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Flik-navigering inne i Inställningar
-    document.querySelectorAll('.set-tab-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            document.querySelectorAll('.set-tab-btn').forEach(b => b.classList.remove('active'));
-            document.querySelectorAll('.set-tab-pane').forEach(p => p.classList.add('hidden'));
-            btn.classList.add('active');
-            document.getElementById(btn.dataset.setTab)?.classList.remove('hidden');
+    const switchSettingsTab = (targetTabId) => {
+        document.querySelectorAll('.set-tab-btn').forEach(b => {
+            b.classList.toggle('active', b.dataset.setTab === targetTabId);
         });
+        document.querySelectorAll('.set-tab-pane').forEach(p => {
+            p.classList.toggle('hidden', p.id !== targetTabId);
+        });
+    };
+
+    document.querySelectorAll('.set-tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => switchSettingsTab(btn.dataset.setTab));
     });
+
+    const settingsBtn = document.getElementById('settings-btn');
+    if (settingsBtn) {
+        settingsBtn.addEventListener('click', () => {
+            switchSettingsTab('set-pane-sys');
+        });
+    }
 
     // Dimma underinställningar när huvudfunktion är avstängd
     const syncSubGroupState = (toggleId, groupId) => {
@@ -1804,7 +1815,6 @@ document.addEventListener('DOMContentLoaded', () => {
         chrome.tabs.create({ url: window.location.href });
     });
 
-    const settingsBtn = document.getElementById('settings-btn');
     const settingsPanel = document.getElementById('settings-panel');
     const closeSettingsBtn = document.getElementById('close-settings-btn');
 
