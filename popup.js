@@ -135,6 +135,136 @@ document.addEventListener('DOMContentLoaded', () => {
     setupToggle('toggle-hover-menu', 'os_hover_menu_enabled', 'hoverMenu', 'Hover-meny');
     setupToggle('toggle-autosearch', 'os_autosearch_enabled', 'autoSearch', 'Autosök');
 
+    const toggleVinHighlight = document.getElementById('toggle-vin-highlight');
+    const clickActionSelect = document.getElementById('click-action-select');
+    const hoverDelaySelect = document.getElementById('hover-delay-select');
+    const hoverBtnToggles = document.querySelectorAll('.hover-btn-toggle');
+
+    // Reg-nr detaljinställningar
+    const regColorSelect = document.getElementById('reg-color-select');
+    const regBoldToggle = document.getElementById('reg-bold-toggle');
+    const regUnderlineToggle = document.getElementById('reg-underline-toggle');
+    const regHoverFxToggle = document.getElementById('reg-hover-fx-toggle');
+    const regPointerToggle = document.getElementById('reg-pointer-toggle');
+
+    // VIN detaljinställningar
+    const vinClickActionSelect = document.getElementById('vin-click-action-select');
+    const vinCustomUrlInput = document.getElementById('vin-custom-url-input');
+    const vinStyleSelect = document.getElementById('vin-style-select');
+    const vinColorSelect = document.getElementById('vin-color-select');
+    const vinBoldToggle = document.getElementById('vin-bold-toggle');
+    const vinUnderlineToggle = document.getElementById('vin-underline-toggle');
+    const vinMonospaceToggle = document.getElementById('vin-monospace-toggle');
+    const vinHoverFxToggle = document.getElementById('vin-hover-fx-toggle');
+
+    chrome.storage.local.get([
+        'os_vin_highlight_enabled', 'os_click_action', 'os_hover_delay', 'os_hover_buttons',
+        'os_reg_color', 'os_reg_bold', 'os_reg_underline', 'os_reg_hover_fx', 'os_reg_pointer',
+        'os_vin_click_action', 'os_vin_custom_url', 'os_vin_style', 'os_vin_color',
+        'os_vin_bold', 'os_vin_underline', 'os_vin_monospace', 'os_vin_hover_fx'
+    ], (res) => {
+        if (toggleVinHighlight) toggleVinHighlight.checked = res.os_vin_highlight_enabled !== false;
+        if (clickActionSelect) clickActionSelect.value = res.os_click_action || 'copy';
+        if (hoverDelaySelect) hoverDelaySelect.value = res.os_hover_delay !== undefined ? String(res.os_hover_delay) : '120';
+        const activeBtns = res.os_hover_buttons || ['search', 'bu-scrape', 'ci-direct', 'bu-direct'];
+        hoverBtnToggles.forEach(cb => { cb.checked = activeBtns.includes(cb.value); });
+
+        if (regColorSelect) regColorSelect.value = res.os_reg_color || '#f97316';
+        if (regBoldToggle) regBoldToggle.checked = res.os_reg_bold !== false;
+        if (regUnderlineToggle) regUnderlineToggle.checked = res.os_reg_underline === true;
+        if (regHoverFxToggle) regHoverFxToggle.checked = res.os_reg_hover_fx !== false;
+        if (regPointerToggle) regPointerToggle.checked = res.os_reg_pointer !== false;
+
+        if (vinClickActionSelect) {
+            vinClickActionSelect.value = res.os_vin_click_action || 'etka';
+            if (vinCustomUrlInput) vinCustomUrlInput.classList.toggle('hidden', vinClickActionSelect.value !== 'custom');
+        }
+        if (vinCustomUrlInput) vinCustomUrlInput.value = res.os_vin_custom_url || '';
+        if (vinStyleSelect) vinStyleSelect.value = res.os_vin_style || 'underline';
+        if (vinColorSelect) vinColorSelect.value = res.os_vin_color || '#3b82f6';
+        if (vinBoldToggle) vinBoldToggle.checked = res.os_vin_bold !== false;
+        if (vinUnderlineToggle) vinUnderlineToggle.checked = res.os_vin_underline === true;
+        if (vinMonospaceToggle) vinMonospaceToggle.checked = res.os_vin_monospace === true;
+        if (vinHoverFxToggle) vinHoverFxToggle.checked = res.os_vin_hover_fx !== false;
+    });
+
+    const bindSetting = (el, key, isCheckbox = false) => {
+        if (!el) return;
+        el.addEventListener(isCheckbox ? 'change' : 'input', (e) => {
+            chrome.storage.local.set({ [key]: isCheckbox ? e.target.checked : e.target.value });
+        });
+    };
+
+    bindSetting(toggleVinHighlight, 'os_vin_highlight_enabled', true);
+    bindSetting(clickActionSelect, 'os_click_action');
+    bindSetting(regColorSelect, 'os_reg_color');
+    bindSetting(regBoldToggle, 'os_reg_bold', true);
+    bindSetting(regUnderlineToggle, 'os_reg_underline', true);
+    bindSetting(regHoverFxToggle, 'os_reg_hover_fx', true);
+    bindSetting(regPointerToggle, 'os_reg_pointer', true);
+
+    if (vinClickActionSelect) {
+        vinClickActionSelect.addEventListener('change', (e) => {
+            chrome.storage.local.set({ os_vin_click_action: e.target.value });
+            if (vinCustomUrlInput) vinCustomUrlInput.classList.toggle('hidden', e.target.value !== 'custom');
+        });
+    }
+    bindSetting(vinCustomUrlInput, 'os_vin_custom_url');
+    bindSetting(vinStyleSelect, 'os_vin_style');
+    bindSetting(vinColorSelect, 'os_vin_color');
+    bindSetting(vinBoldToggle, 'os_vin_bold', true);
+    bindSetting(vinUnderlineToggle, 'os_vin_underline', true);
+    bindSetting(vinMonospaceToggle, 'os_vin_monospace', true);
+    bindSetting(vinHoverFxToggle, 'os_vin_hover_fx', true);
+
+    if (hoverDelaySelect) {
+        hoverDelaySelect.addEventListener('change', (e) => {
+            chrome.storage.local.set({ os_hover_delay: parseInt(e.target.value, 10) });
+        });
+    }
+
+    hoverBtnToggles.forEach(cb => {
+        cb.addEventListener('change', () => {
+            const selected = Array.from(hoverBtnToggles).filter(i => i.checked).map(i => i.value);
+            chrome.storage.local.set({ os_hover_buttons: selected });
+        });
+    });
+
+    chrome.storage.local.get(['os_vin_highlight_enabled', 'os_click_action', 'os_hover_delay', 'os_hover_buttons'], (res) => {
+        if (toggleVinHighlight) toggleVinHighlight.checked = res.os_vin_highlight_enabled !== false;
+        if (clickActionSelect) clickActionSelect.value = res.os_click_action || 'copy';
+        if (hoverDelaySelect) hoverDelaySelect.value = res.os_hover_delay !== undefined ? String(res.os_hover_delay) : '120';
+        const activeBtns = res.os_hover_buttons || ['search', 'bu-scrape', 'ci-direct', 'bu-direct'];
+        hoverBtnToggles.forEach(cb => {
+            cb.checked = activeBtns.includes(cb.value);
+        });
+    });
+
+    if (toggleVinHighlight) {
+        toggleVinHighlight.addEventListener('change', (e) => {
+            chrome.storage.local.set({ os_vin_highlight_enabled: e.target.checked });
+        });
+    }
+
+    if (clickActionSelect) {
+        clickActionSelect.addEventListener('change', (e) => {
+            chrome.storage.local.set({ os_click_action: e.target.value });
+        });
+    }
+
+    if (hoverDelaySelect) {
+        hoverDelaySelect.addEventListener('change', (e) => {
+            chrome.storage.local.set({ os_hover_delay: parseInt(e.target.value, 10) });
+        });
+    }
+
+    hoverBtnToggles.forEach(cb => {
+        cb.addEventListener('change', () => {
+            const selected = Array.from(hoverBtnToggles).filter(i => i.checked).map(i => i.value);
+            chrome.storage.local.set({ os_hover_buttons: selected });
+        });
+    });
+
     const blacklistInput = document.getElementById('hover-blacklist-input');
     if (blacklistInput) {
         chrome.storage.local.get(['os_hover_blacklist'], (res) => {
