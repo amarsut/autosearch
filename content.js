@@ -1410,7 +1410,7 @@ if (!HOST.includes('oljemagasinet.se') && !HOST.includes('car.info') && !HOST.in
 
     const SKIP_TAGS = new Set(['SCRIPT', 'STYLE', 'NOSCRIPT', 'TEXTAREA', 'INPUT', 'BUTTON', 'SELECT', 'OPTION', 'SVG', 'CODE', 'PRE', 'HEAD']);
     const REG_PAT = '(?!(?:SEK|EUR|USD)\\s?)[A-Z]{3}\\s?[0-9]{2}[A-Z0-9](?!\\s*(?:kr|:-|[.,]\\d))';
-    const VIN_PAT = '(?=[A-HJ-NPR-Z0-9]*\\d)(?=[A-HJ-NPR-Z0-9]*[A-HJ-NPR-Z])[A-HJ-NPR-Z0-9]{17}';
+    const VIN_PAT = '(?=[A-HJ-NPR-Za-hj-npr-z0-9]*\\d)(?=[A-HJ-NPR-Za-hj-npr-z0-9]*[A-HJ-NPR-Za-hj-npr-z])[A-HJ-NPR-Za-hj-npr-z0-9]{17}';
     const REG_ONLY_REGEX = new RegExp(`\\b(${REG_PAT})\\b`, 'g');
     const VIN_ONLY_REGEX = new RegExp(`\\b(${VIN_PAT})\\b`, 'g');
     const BOTH_HIGHLIGHT_REGEX = new RegExp(`\\b(?:(${VIN_PAT})|(${REG_PAT}))\\b`, 'g');
@@ -1474,7 +1474,7 @@ if (!HOST.includes('oljemagasinet.se') && !HOST.includes('car.info') && !HOST.in
                     span.className = 'bmg-reg-highlight';
                     span.dataset.reg = cleanVal;
                 }
-                span.textContent = match[0];
+                span.textContent = match[0].toUpperCase();
                 fragment.appendChild(span); lastIndex = regex.lastIndex;
             }
             if (matched) { fragment.appendChild(document.createTextNode(text.substring(lastIndex))); if (textNode.parentNode) textNode.parentNode.replaceChild(fragment, textNode); }
@@ -1504,7 +1504,7 @@ if (!HOST.includes('oljemagasinet.se') && !HOST.includes('car.info') && !HOST.in
 
     document.addEventListener('mousedown', (e) => {
         if (e.target === hoverBridgeHost || e.composedPath().includes(hoverBridgeHost)) return;
-        const span = e.target.closest?.('.bmg-reg-highlight');
+        const span = e.target.closest?.('.bmg-reg-highlight, .bmg-vin-highlight');
         if (!span) return;
         clearTimeout(hoverShowTimer);
         clearTimeout(hoverHideTimer);
@@ -1524,12 +1524,10 @@ if (!HOST.includes('oljemagasinet.se') && !HOST.includes('car.info') && !HOST.in
 
                 let targetUrl = '';
                 if (vinClickAction === 'etka') targetUrl = 'https://superetka.com/etka/';
-                else if (vinClickAction === 'ci') targetUrl = `https://www.car.info/sv-se/search?q=${cleanVin}`;
-                else if (vinClickAction === 'bu') targetUrl = `https://biluppgifter.se/fordon/${cleanVin}`;
+                else if (vinClickAction === 'etkaweb') targetUrl = 'https://www.etka.com/etkaweb/';
                 else if (vinClickAction === 'porsche') targetUrl = `https://ph-veh-se03.cross.porscheinformatik.com/physical-vehicle/search?applicationName=SERVICE&conversation=1794303212235&prodFam=C3&q=${cleanVin.toLowerCase()}`;
                 else if (vinClickAction === '7zap') targetUrl = `https://7zap.com/en/search/?q=${cleanVin}`;
                 else if (vinClickAction === 'partsouq') targetUrl = `https://partsouq.com/en/search/all?q=${cleanVin}`;
-                else if (vinClickAction === 'trodo') targetUrl = `https://www.trodo.se/catalogsearch/result/?q=${cleanVin}`;
                 else if (vinClickAction === 'custom' && vinCustomUrl) {
                     targetUrl = vinCustomUrl.includes('{vin}') ? vinCustomUrl.replace(/\{vin\}/gi, cleanVin) : (vinCustomUrl + cleanVin);
                 }
