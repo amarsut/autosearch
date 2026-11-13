@@ -178,21 +178,39 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 // HÖGERKLICK (Får använda den vanliga dropdown-menyn)
 // ==========================================
 function rebuildContextMenus() {
-    chrome.storage.local.get(['os_context_menu_mode'], (res) => {
-        const mode = res.os_context_menu_mode || 'submenu'; // 'direct' = gamla, 'submenu' = nya
+    chrome.storage.local.get(['os_context_menu_mode', 'os_hover_buttons'], (res) => {
+        const mode = res.os_context_menu_mode || 'submenu';
+        // Porsche exkluderad som standard
+        const activeBtns = Array.isArray(res.os_hover_buttons)
+            ? res.os_hover_buttons
+            : ['search', 'bu-scrape', 'ci-direct', 'bu-direct'];
+
         chrome.contextMenus.removeAll(() => {
             if (mode === 'direct') {
-                // GAMLA MENYN: Endast 1 val för textmarkering = Direktklick på toppnivå
                 chrome.contextMenus.create({ id: "bmg-search-reg", title: "Sök Fordon: '%s'", contexts: ["selection"] });
                 chrome.contextMenus.create({ id: "bmg-scan-image", title: "Skanna Reg-nr från bild", contexts: ["image"] });
             } else {
-                // NYA MENYN: Bridge-undermeny med flera val
-                chrome.contextMenus.create({ id: "bmg-search-reg", title: "🟠  Sök Fordon: '%s'", contexts: ["selection"] });
-                chrome.contextMenus.create({ id: "porsche-search-reg", title: "🔵  Öppna i Porsche Service: '%s'", contexts: ["selection"] });
-                chrome.contextMenus.create({ id: "bmg-sep-1", type: "separator", contexts: ["selection"] });
-                chrome.contextMenus.create({ id: "bmg-search-bu", title: "🟢  Sök via Biluppgifter: '%s'", contexts: ["selection"] });
-                chrome.contextMenus.create({ id: "open-ci-direct", title: "⚪  Öppna Car.info direkt: '%s'", contexts: ["selection"] });
-                chrome.contextMenus.create({ id: "open-bu-direct", title: "⚪  Öppna Biluppgifter direkt: '%s'", contexts: ["selection"] });
+                const hasTop = activeBtns.includes('search') || activeBtns.includes('porsche');
+                const hasBottom = activeBtns.includes('bu-scrape') || activeBtns.includes('ci-direct') || activeBtns.includes('bu-direct');
+
+                if (activeBtns.includes('search')) {
+                    chrome.contextMenus.create({ id: "bmg-search-reg", title: "🟠  Sök Fordon: '%s'", contexts: ["selection"] });
+                }
+                if (activeBtns.includes('porsche')) {
+                    chrome.contextMenus.create({ id: "porsche-search-reg", title: "🔵  Öppna i Porsche Service: '%s'", contexts: ["selection"] });
+                }
+                if (hasTop && hasBottom) {
+                    chrome.contextMenus.create({ id: "bmg-sep-1", type: "separator", contexts: ["selection"] });
+                }
+                if (activeBtns.includes('bu-scrape')) {
+                    chrome.contextMenus.create({ id: "bmg-search-bu", title: "🟢  Sök via Biluppgifter: '%s'", contexts: ["selection"] });
+                }
+                if (activeBtns.includes('ci-direct')) {
+                    chrome.contextMenus.create({ id: "open-ci-direct", title: "⚪  Öppna Car.info direkt: '%s'", contexts: ["selection"] });
+                }
+                if (activeBtns.includes('bu-direct')) {
+                    chrome.contextMenus.create({ id: "open-bu-direct", title: "⚪  Öppna Biluppgifter direkt: '%s'", contexts: ["selection"] });
+                }
                 chrome.contextMenus.create({ id: "bmg-scan-image", title: "🟠  Skanna Reg-nr från bild", contexts: ["image"] });
             }
         });
@@ -200,9 +218,10 @@ function rebuildContextMenus() {
 }
 
 chrome.runtime.onInstalled.addListener(rebuildContextMenus);
+chrome.runtime.onStartup.addListener(rebuildContextMenus);
 
 chrome.storage.onChanged.addListener((changes, ns) => {
-    if (ns === 'local' && changes.os_context_menu_mode) {
+    if (ns === 'local' && (changes.os_context_menu_mode || changes.os_hover_buttons)) {
         rebuildContextMenus();
     }
 });
