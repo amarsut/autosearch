@@ -133,12 +133,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     setupToggle('toggle-highlight', 'os_highlight_enabled', 'highlight', 'Autoskanning');
     setupToggle('toggle-hover-menu', 'os_hover_menu_enabled', 'hoverMenu', 'Hover-meny');
+    setupToggle('toggle-vin-hover-menu', 'os_vin_hover_menu_enabled', 'vinHoverMenu', 'VIN Hover-meny');
     setupToggle('toggle-autosearch', 'os_autosearch_enabled', 'autoSearch', 'Autosök');
 
     const toggleVinHighlight = document.getElementById('toggle-vin-highlight');
     const clickActionSelect = document.getElementById('click-action-select');
     const hoverDelaySelect = document.getElementById('hover-delay-select');
     const hoverBtnToggles = document.querySelectorAll('.hover-btn-toggle');
+    const vinHoverBtnToggles = document.querySelectorAll('.vin-hover-btn-toggle');
 
     // Reg-nr detaljinställningar
     const regColorSelect = document.getElementById('reg-color-select');
@@ -158,7 +160,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const vinHoverFxToggle = document.getElementById('vin-hover-fx-toggle');
 
     chrome.storage.local.get([
-        'os_vin_highlight_enabled', 'os_click_action', 'os_hover_delay', 'os_hover_buttons',
+        'os_vin_highlight_enabled', 'os_click_action', 'os_hover_delay', 'os_hover_buttons', 'os_vin_hover_buttons',
         'os_reg_color', 'os_reg_bold', 'os_reg_underline', 'os_reg_hover_fx', 'os_reg_pointer',
         'os_vin_click_action', 'os_vin_custom_url', 'os_vin_style', 'os_vin_color',
         'os_vin_bold', 'os_vin_underline', 'os_vin_monospace', 'os_vin_hover_fx'
@@ -170,6 +172,11 @@ document.addEventListener('DOMContentLoaded', () => {
             ? res.os_hover_buttons
             : ['search', 'bu-scrape', 'ci-direct', 'bu-direct'];
         hoverBtnToggles.forEach(cb => { cb.checked = activeBtns.includes(cb.value); });
+
+        const activeVinBtns = Array.isArray(res.os_vin_hover_buttons)
+            ? res.os_vin_hover_buttons
+            : ['etka', 'etkaweb', '7zap', 'partsouq', 'copy'];
+        vinHoverBtnToggles.forEach(cb => { cb.checked = activeVinBtns.includes(cb.value); });
 
         if (regColorSelect) regColorSelect.value = res.os_reg_color || '#f97316';
         if (regBoldToggle) regBoldToggle.checked = res.os_reg_bold !== false;
@@ -240,6 +247,16 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    vinHoverBtnToggles.forEach(cb => {
+        cb.addEventListener('change', (e) => {
+            e.stopPropagation();
+            const selected = Array.from(document.querySelectorAll('.vin-hover-btn-toggle'))
+                .filter(i => i.checked)
+                .map(i => i.value);
+            chrome.storage.local.set({ 'os_vin_hover_buttons': selected });
+        });
+    });
+
     // Flik-navigering inne i Inställningar
     const switchSettingsTab = (targetTabId) => {
         document.querySelectorAll('.set-tab-btn').forEach(b => {
@@ -273,6 +290,7 @@ document.addEventListener('DOMContentLoaded', () => {
     syncSubGroupState('toggle-highlight', 'reg-sub-settings');
     syncSubGroupState('toggle-vin-highlight', 'vin-sub-settings');
     syncSubGroupState('toggle-hover-menu', 'hover-sub-settings');
+    syncSubGroupState('toggle-vin-hover-menu', 'vin-hover-sub-settings');
 
     // Live-förhandsvisning av VIN-stil i inställningarna
     const updateVinPreview = () => {
