@@ -47,6 +47,7 @@
             </button>
 
             <!-- Helskärms inställningsvy -->
+            <!-- Helskärms inställningsvy med 4 snabba flikar -->
             <div id="settings-panel" class="settings-fullscreen hidden">
                 <div class="settings-nav">
                     <button id="close-settings-btn" class="settings-back-btn" title="Gå tillbaka">
@@ -56,196 +57,210 @@
                     <span class="settings-header-title">Inställningar</span>
                 </div>
 
+                <!-- Segmented Control (Flikar) -->
+                <div class="settings-tabs-bar">
+                    <button type="button" class="set-tab-btn active" data-set-tab="set-pane-reg">Reg-nr</button>
+                    <button type="button" class="set-tab-btn" data-set-tab="set-pane-vin">Chassinr</button>
+                    <button type="button" class="set-tab-btn" data-set-tab="set-pane-hover">Hover & Menyer</button>
+                    <button type="button" class="set-tab-btn" data-set-tab="set-pane-sys">System</button>
+                </div>
+
                 <div class="settings-scroll-body">
-                    <div class="settings-group">
-                        <div class="settings-group-title">Automatisering & Sidskanning</div>
+                    <!-- FLIK 1: REG-NR -->
+                    <div id="set-pane-reg" class="set-tab-pane active">
                         <label class="setting-card">
                             <div class="setting-text">
                                 <span class="setting-main">Markera reg-nr</span>
-                                <span class="setting-sub">Sök automatiskt efter reg-nr i webbsidor</span>
+                                <span class="setting-sub">Identifiera reg-nr automatiskt på webbsidor</span>
                             </div>
                             <div class="toggle-switch"><input type="checkbox" id="toggle-highlight" checked><div class="slider"></div></div>
                         </label>
-                        <label class="setting-card">
-                            <div class="setting-text">
-                                <span class="setting-main">Markera chassinr (VIN)</span>
-                                <span class="setting-sub">Klick kopierar chassinr och öppnar SuperETKA</span>
-                            </div>
-                            <div class="toggle-switch"><input type="checkbox" id="toggle-vin-highlight" checked><div class="slider"></div></div>
-                        </label>
-                        <label class="setting-card">
-                            <div class="setting-text">
-                                <span class="setting-main">Hover-meny</span>
-                                <span class="setting-sub">Visa snabbmeny vid hovring på registreringsnummer</span>
-                            </div>
-                            <div class="toggle-switch"><input type="checkbox" id="toggle-hover-menu" checked><div class="slider"></div></div>
-                        </label>
-                        <label class="setting-card">
-                            <div class="setting-text">
-                                <span class="setting-main">Autosök vid inmatning</span>
-                                <span class="setting-sub">Starta sökning direkt när 6 tecken fyllts i</span>
-                            </div>
-                            <div class="toggle-switch"><input type="checkbox" id="toggle-autosearch" checked><div class="slider"></div></div>
-                        </label>
-                        <div class="setting-card">
-                            <div class="setting-text">
-                                <span class="setting-main">Klick på markerat reg-nr</span>
-                                <span class="setting-sub">Åtgärd vid vänsterklick direkt på numret</span>
-                            </div>
-                            <select id="click-action-select" class="settings-select">
-                                <option value="copy" selected>Kopiera reg-nr</option>
-                                <option value="search">Sök i AutoSearch (Standardkälla)</option>
-                                <option value="combo-ci-om">Sök Kombo (CI + OM)</option>
-                                <option value="combo">Sök Kombo (BU + OM)</option>
-                                <option value="ci-scrape">Skrapa Car.info</option>
-                                <option value="bu-scrape">Skrapa Biluppgifter</option>
-                                <option value="om-scrape">Skrapa Oljemagasinet</option>
-                                <option value="ts-scrape">Skrapa Transportstyrelsen</option>
-                                <option value="ci-direct">Öppna Car.info direkt</option>
-                                <option value="bu-direct">Öppna Biluppgifter direkt</option>
-                                <option value="om-direct">Öppna Oljemagasinet direkt</option>
-                                <option value="ts-direct">Öppna Transportstyrelsen direkt</option>
-                                <option value="porsche-direct">Öppna Porsche Service direkt</option>
-                                <option value="none">Gör ingenting</option>
-                            </select>
-                        </div>
-                        <div class="setting-card">
-                            <div class="setting-text">
-                                <span class="setting-main">Fördröjning (Hover-meny)</span>
-                                <span class="setting-sub">Hur snabbt menyn öppnas vid hovring</span>
-                            </div>
-                            <select id="hover-delay-select" class="settings-select">
-                                <option value="0">Direkt (0 ms)</option>
-                                <option value="120" selected>Snabb (120 ms)</option>
-                                <option value="300">Normal (300 ms)</option>
-                                <option value="500">Seg (500 ms)</option>
-                            </select>
-                        </div>
-                        <div class="setting-card-block">
-                            <span class="setting-main" style="margin-bottom:8px; display:block;">Knappar i Hover-menyn</span>
-                            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px; font-size:12px; color:#334155; font-weight:600;">
-                                <label style="display:flex; align-items:center; gap:6px; cursor:pointer;"><input type="checkbox" class="hover-btn-toggle" value="search" checked> Sök Fordon</label>
-                                <label style="display:flex; align-items:center; gap:6px; cursor:pointer;"><input type="checkbox" class="hover-btn-toggle" value="porsche"> Porsche Service</label>
-                                <label style="display:flex; align-items:center; gap:6px; cursor:pointer;"><input type="checkbox" class="hover-btn-toggle" value="bu-scrape" checked> Sök Biluppgifter</label>
-                                <label style="display:flex; align-items:center; gap:6px; cursor:pointer;"><input type="checkbox" class="hover-btn-toggle" value="ci-direct" checked> Car.info direkt</label>
-                                <label style="display:flex; align-items:center; gap:6px; cursor:pointer;"><input type="checkbox" class="hover-btn-toggle" value="bu-direct" checked> Biluppgifter direkt</label>
-                            </div>
-                        </div>
-                        <div class="setting-card-block">
-                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-                                <span class="setting-main">Svartlistade domäner (Hover-meny)</span>
-                                <button id="add-current-host-btn" type="button" class="action-mini-btn">+ Denna domän</button>
-                            </div>
-                            <input type="text" id="hover-blacklist-input" placeholder="t.ex. blocket.se, localhost" class="settings-text-input">
-                        </div>
-                        <!-- ANPASSNING FÖR REG-NR -->
-                        <div class="setting-card-block">
-                            <span class="setting-main" style="margin-bottom:6px; display:block;">Utseende: Reg-nr</span>
-                            <div class="custom-select-wrapper" id="highlight-style-wrapper" style="margin-bottom:8px;">
-                                <div class="custom-select-trigger" id="highlight-style-trigger">
-                                    <span id="active-style-preview" class="prev-saas">ABC123</span>
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                                </div>
-                                <div class="custom-select-options hidden" id="highlight-style-options">
-                                    <div class="style-list-item" data-style="none" data-class="prev-none"><span class="prev-none">ABC123</span><span class="style-name">Osynlig (Ingen markering)</span></div>
-                                    <div class="style-list-item" data-style="saas" data-class="prev-saas"><span class="prev-saas">ABC123</span><span class="style-name">SaaS Badge</span></div>
-                                    <div class="style-list-item" data-style="underline" data-class="prev-underline"><span class="prev-underline">ABC123</span><span class="style-name">Underline</span></div>
-                                    <div class="style-list-item" data-style="ghost" data-class="prev-ghost"><span class="prev-ghost">ABC123</span><span class="style-name">Ghost (Ram)</span></div>
-                                    <div class="style-list-item" data-style="accent" data-class="prev-accent"><span class="prev-accent">ABC123</span><span class="style-name">Accent (Sidostreck)</span></div>
-                                    <div class="style-list-item" data-style="corner" data-class="prev-corner"><span class="prev-corner">ABC123</span><span class="style-name">Corner (L-Hörn)</span></div>
-                                    <div class="style-list-item" data-style="bracket" data-class="prev-bracket"><span class="prev-bracket">ABC123</span><span class="style-name">Bracket (Dubbelkant)</span></div>
-                                    <div class="style-list-item" data-style="topbar" data-class="prev-topbar"><span class="prev-topbar">ABC123</span><span class="style-name">Topbar (Överliggare)</span></div>
-                                    <div class="style-list-item" data-style="pulse" data-class="prev-pulse"><span class="prev-pulse">ABC123</span><span class="style-name">Pulse (Prick)</span></div>
-                                    <div class="style-list-item" data-style="plate" data-class="prev-plate"><span class="prev-plate">ABC123</span><span class="style-name">Plate (EU-Skylt)</span></div>
-                                </div>
-                            </div>
-                            <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:8px;">
-                                <span style="font-size:11px; color:#64748b; font-weight:600;">Färg (Reg-nr)</span>
-                                <select id="reg-color-select" class="settings-select" style="padding:4px 8px; font-size:11px;">
-                                    <option value="#f97316" selected>Orange (Standard)</option>
-                                    <option value="#3b82f6">Blå</option>
-                                    <option value="#10b981">Grön</option>
-                                    <option value="#ef4444">Röd</option>
-                                    <option value="#8b5cf6">Lila</option>
-                                    <option value="#64748b">Diskret Grå</option>
-                                </select>
-                            </div>
-                            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px; font-size:11px; color:#334155; font-weight:600;">
-                                <label style="display:flex; align-items:center; gap:5px; cursor:pointer;"><input type="checkbox" id="reg-bold-toggle" checked> Fetstil (Bold)</label>
-                                <label style="display:flex; align-items:center; gap:5px; cursor:pointer;"><input type="checkbox" id="reg-underline-toggle"> Extra Understrykning</label>
-                                <label style="display:flex; align-items:center; gap:5px; cursor:pointer;"><input type="checkbox" id="reg-hover-fx-toggle" checked> Hovringseffekt</label>
-                                <label style="display:flex; align-items:center; gap:5px; cursor:pointer;"><input type="checkbox" id="reg-pointer-toggle" checked> Hand-muspekare</label>
-                            </div>
-                        </div>
 
-                        <!-- ANPASSNING FÖR CHASSINR (VIN) -->
-                        <div class="setting-card-block">
-                            <span class="setting-main" style="margin-bottom:6px; display:block;">Utseende & Klick: Chassinr (VIN)</span>
-                            <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:8px;">
-                                <span style="font-size:11px; color:#64748b; font-weight:600;">Klick på VIN</span>
-                                <select id="vin-click-action-select" class="settings-select" style="padding:4px 8px; font-size:11px; max-width:190px;">
-                                    <option value="etka" selected>Kopiera + SuperETKA</option>
-                                    <option value="copy">Endast kopiera VIN</option>
-                                    <option value="ci">Kopiera + Car.info</option>
-                                    <option value="bu">Kopiera + Biluppgifter</option>
-                                    <option value="porsche">Kopiera + Porsche Service</option>
-                                    <option value="7zap">Kopiera + 7zap OEM</option>
-                                    <option value="partsouq">Kopiera + PartSouq</option>
-                                    <option value="trodo">Kopiera + Trodo</option>
-                                    <option value="custom">Kopiera + Egen URL</option>
+                        <div id="reg-sub-settings" class="settings-sub-group">
+                            <div class="setting-card">
+                                <div class="setting-text">
+                                    <span class="setting-main">Vänsterklick på reg-nr</span>
+                                    <span class="setting-sub">Direktåtgärd vid klick</span>
+                                </div>
+                                <select id="click-action-select" class="settings-select" style="max-width:195px;">
+                                    <option value="copy" selected>Kopiera reg-nr</option>
+                                    <option value="search">Sök i AutoSearch (Standard)</option>
+                                    <option value="combo-ci-om">Sök Kombo (CI + OM)</option>
+                                    <option value="combo">Sök Kombo (BU + OM)</option>
+                                    <option value="ci-scrape">Skrapa Car.info</option>
+                                    <option value="bu-scrape">Skrapa Biluppgifter</option>
+                                    <option value="om-scrape">Skrapa Oljemagasinet</option>
+                                    <option value="ts-scrape">Skrapa Transportstyrelsen</option>
+                                    <option value="ci-direct">Öppna Car.info direkt</option>
+                                    <option value="bu-direct">Öppna Biluppgifter direkt</option>
+                                    <option value="om-direct">Öppna Oljemagasinet direkt</option>
+                                    <option value="ts-direct">Öppna Transportstyrelsen direkt</option>
+                                    <option value="porsche-direct">Öppna Porsche Service direkt</option>
                                     <option value="none">Gör ingenting</option>
                                 </select>
                             </div>
-                            <input type="text" id="vin-custom-url-input" placeholder="Egen URL, t.ex. https://sida.se/?q={vin}" class="settings-text-input hidden" style="margin-bottom:8px; font-size:11px;">
-                            <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:8px;">
-                                <span style="font-size:11px; color:#64748b; font-weight:600;">Stil (VIN)</span>
-                                <select id="vin-style-select" class="settings-select" style="padding:4px 8px; font-size:11px;">
-                                    <option value="none">Osynlig (Ingen markering)</option>
-                                    <option value="underline" selected>Underline</option>
-                                    <option value="accent">Accent (Sidostreck)</option>
-                                    <option value="corner">Corner (L-Hörn)</option>
-                                    <option value="bracket">Bracket (Dubbelkant)</option>
-                                    <option value="ghost">Ghost (Streckad ram)</option>
-                                    <option value="saas">SaaS Badge</option>
-                                    <option value="topbar">Topbar (Överliggare)</option>
-                                </select>
-                            </div>
-                            <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:8px;">
-                                <span style="font-size:11px; color:#64748b; font-weight:600;">Färg (VIN)</span>
-                                <select id="vin-color-select" class="settings-select" style="padding:4px 8px; font-size:11px;">
-                                    <option value="#3b82f6" selected>Blå (Standard VIN)</option>
-                                    <option value="#f97316">Orange</option>
-                                    <option value="#10b981">Grön</option>
-                                    <option value="#ef4444">Röd</option>
-                                    <option value="#8b5cf6">Lila</option>
-                                    <option value="#64748b">Diskret Grå</option>
-                                </select>
-                            </div>
-                            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px; font-size:11px; color:#334155; font-weight:600;">
-                                <label style="display:flex; align-items:center; gap:5px; cursor:pointer;"><input type="checkbox" id="vin-bold-toggle" checked> Fetstil (Bold)</label>
-                                <label style="display:flex; align-items:center; gap:5px; cursor:pointer;"><input type="checkbox" id="vin-underline-toggle"> Extra Understrykning</label>
-                                <label style="display:flex; align-items:center; gap:5px; cursor:pointer;"><input type="checkbox" id="vin-monospace-toggle"> Monospace-typsnitt</label>
-                                <label style="display:flex; align-items:center; gap:5px; cursor:pointer;"><input type="checkbox" id="vin-hover-fx-toggle" checked> Hovringseffekt</label>
+
+                            <div class="setting-card-block">
+                                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                                    <span class="setting-main">Visuell stil</span>
+                                    <select id="reg-color-select" class="settings-select" style="padding:4px 8px; font-size:11px;">
+                                        <option value="#f97316" selected>🟠 Orange</option>
+                                        <option value="#3b82f6">🔵 Blå</option>
+                                        <option value="#10b981">🟢 Grön</option>
+                                        <option value="#ef4444">🔴 Röd</option>
+                                        <option value="#8b5cf6">🟣 Lila</option>
+                                        <option value="#64748b">⚪ Grå</option>
+                                    </select>
+                                </div>
+
+                                <div class="custom-select-wrapper" id="highlight-style-wrapper" style="margin-bottom:10px;">
+                                    <div class="custom-select-trigger" id="highlight-style-trigger">
+                                        <span id="active-style-preview" class="prev-saas">ABC123</span>
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                                    </div>
+                                    <div class="custom-select-options hidden" id="highlight-style-options">
+                                        <div class="style-list-item" data-style="none" data-class="prev-none"><span class="prev-none">ABC123</span><span class="style-name">Osynlig (Ingen markering)</span></div>
+                                        <div class="style-list-item" data-style="saas" data-class="prev-saas"><span class="prev-saas">ABC123</span><span class="style-name">SaaS Badge</span></div>
+                                        <div class="style-list-item" data-style="underline" data-class="prev-underline"><span class="prev-underline">ABC123</span><span class="style-name">Underline</span></div>
+                                        <div class="style-list-item" data-style="ghost" data-class="prev-ghost"><span class="prev-ghost">ABC123</span><span class="style-name">Ghost (Ram)</span></div>
+                                        <div class="style-list-item" data-style="accent" data-class="prev-accent"><span class="prev-accent">ABC123</span><span class="style-name">Accent (Sidostreck)</span></div>
+                                        <div class="style-list-item" data-style="corner" data-class="prev-corner"><span class="prev-corner">ABC123</span><span class="style-name">Corner (L-Hörn)</span></div>
+                                        <div class="style-list-item" data-style="bracket" data-class="prev-bracket"><span class="prev-bracket">ABC123</span><span class="style-name">Bracket (Dubbelkant)</span></div>
+                                        <div class="style-list-item" data-style="topbar" data-class="prev-topbar"><span class="prev-topbar">ABC123</span><span class="style-name">Topbar (Överliggare)</span></div>
+                                        <div class="style-list-item" data-style="pulse" data-class="prev-pulse"><span class="prev-pulse">ABC123</span><span class="style-name">Pulse (Prick)</span></div>
+                                        <div class="style-list-item" data-style="plate" data-class="prev-plate"><span class="prev-plate">ABC123</span><span class="style-name">Plate (EU-Skylt)</span></div>
+                                    </div>
+                                </div>
+
+                                <div class="settings-chip-grid">
+                                    <label class="chip-toggle"><input type="checkbox" id="reg-bold-toggle" checked><span>Fetstil</span></label>
+                                    <label class="chip-toggle"><input type="checkbox" id="reg-underline-toggle"><span>Understrykning</span></label>
+                                    <label class="chip-toggle"><input type="checkbox" id="reg-hover-fx-toggle" checked><span>Hovringseffekt</span></label>
+                                    <label class="chip-toggle"><input type="checkbox" id="reg-pointer-toggle" checked><span>Hand-pekare</span></label>
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    <div class="settings-group">
-                        <div class="settings-group-title">System & Beteende</div>
+                    <!-- FLIK 2: CHASSINR (VIN) -->
+                    <div id="set-pane-vin" class="set-tab-pane hidden">
                         <label class="setting-card">
                             <div class="setting-text">
-                                <span class="setting-main">Aviseringsljud</span>
-                                <span class="setting-sub">Spela diskret ljud när fordon hittas</span>
+                                <span class="setting-main">Markera chassinr (VIN)</span>
+                                <span class="setting-sub">Identifiera 17-ställiga chassinummer</span>
                             </div>
-                            <div class="toggle-switch"><input type="checkbox" id="toggle-sound" checked><div class="slider"></div></div>
+                            <div class="toggle-switch"><input type="checkbox" id="toggle-vin-highlight" checked><div class="slider"></div></div>
                         </label>
+
+                        <div id="vin-sub-settings" class="settings-sub-group">
+                            <div class="setting-card-block">
+                                <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+                                    <div class="setting-text">
+                                        <span class="setting-main">Vänsterklick på VIN</span>
+                                        <span class="setting-sub">Kopierar & öppnar vald katalog</span>
+                                    </div>
+                                    <select id="vin-click-action-select" class="settings-select" style="max-width:185px;">
+                                        <option value="etka" selected>Kopiera + SuperETKA</option>
+                                        <option value="copy">Endast kopiera VIN</option>
+                                        <option value="etkaweb">Kopiera + ETKA</option>
+                                        <option value="porsche">Kopiera + Porsche Service</option>
+                                        <option value="7zap">Kopiera + 7zap OEM</option>
+                                        <option value="partsouq">Kopiera + PartSouq</option>
+                                        <option value="custom">Kopiera + Egen URL</option>
+                                        <option value="none">Gör ingenting</option>
+                                    </select>
+                                </div>
+                                <input type="text" id="vin-custom-url-input" placeholder="Egen URL, t.ex. https://sida.se/?q={vin}" class="settings-text-input hidden" style="margin-top:8px; font-size:11px;">
+                            </div>
+
+                            <div class="setting-card-block">
+                                <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:8px;">
+                                    <span class="setting-main">Visuell stil & Färg</span>
+                                    <div style="display:flex; gap:6px;">
+                                        <select id="vin-style-select" class="settings-select" style="padding:4px 8px; font-size:11px;">
+                                            <option value="none">Osynlig</option>
+                                            <option value="underline" selected>Underline</option>
+                                            <option value="accent">Accent</option>
+                                            <option value="corner">Corner</option>
+                                            <option value="bracket">Bracket</option>
+                                            <option value="ghost">Ghost</option>
+                                            <option value="saas">SaaS Badge</option>
+                                            <option value="topbar">Topbar</option>
+                                        </select>
+                                        <select id="vin-color-select" class="settings-select" style="padding:4px 8px; font-size:11px;">
+                                            <option value="#3b82f6" selected>🔵 Blå</option>
+                                            <option value="#f97316">🟠 Orange</option>
+                                            <option value="#10b981">🟢 Grön</option>
+                                            <option value="#ef4444">🔴 Röd</option>
+                                            <option value="#8b5cf6">🟣 Lila</option>
+                                            <option value="#64748b">⚪ Grå</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <!-- Live-förhandsvisning för VIN -->
+                                <div class="vin-preview-box">
+                                    <span id="active-vin-preview">WVWZZZ3CZGE054360</span>
+                                    <span class="style-name">FÖRHANDSVISNING</span>
+                                </div>
+
+                                <div class="settings-chip-grid" style="margin-top:10px;">
+                                    <label class="chip-toggle"><input type="checkbox" id="vin-bold-toggle" checked><span>Fetstil</span></label>
+                                    <label class="chip-toggle"><input type="checkbox" id="vin-underline-toggle"><span>Understrykning</span></label>
+                                    <label class="chip-toggle"><input type="checkbox" id="vin-monospace-toggle"><span>Monospace</span></label>
+                                    <label class="chip-toggle"><input type="checkbox" id="vin-hover-fx-toggle" checked><span>Hovringseffekt</span></label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- FLIK 3: HOVER & MENYER -->
+                    <div id="set-pane-hover" class="set-tab-pane hidden">
                         <label class="setting-card">
                             <div class="setting-text">
-                                <span class="setting-main">Molnsynk (Firebase)</span>
-                                <span class="setting-sub">Dela historik och fästa fordon mellan enheter</span>
+                                <span class="setting-main">Hover-meny på reg-nr</span>
+                                <span class="setting-sub">Visa snabbmeny vid hovring på webbsidor</span>
                             </div>
-                            <div class="toggle-switch"><input type="checkbox" id="toggle-cloud-sync" checked><div class="slider"></div></div>
+                            <div class="toggle-switch"><input type="checkbox" id="toggle-hover-menu" checked><div class="slider"></div></div>
                         </label>
+
+                        <div id="hover-sub-settings" class="settings-sub-group">
+                            <div class="setting-card">
+                                <div class="setting-text">
+                                    <span class="setting-main">Öppningsfördröjning</span>
+                                    <span class="setting-sub">Hur snabbt menyn visas</span>
+                                </div>
+                                <select id="hover-delay-select" class="settings-select">
+                                    <option value="0">Direkt (0 ms)</option>
+                                    <option value="120" selected>Snabb (120 ms)</option>
+                                    <option value="300">Normal (300 ms)</option>
+                                    <option value="500">Seg (500 ms)</option>
+                                </select>
+                            </div>
+
+                            <div class="setting-card-block">
+                                <span class="setting-main" style="margin-bottom:8px; display:block;">Aktiva knappar (Hover & Högerklick)</span>
+                                <div class="settings-chip-grid">
+                                    <label class="chip-toggle"><input type="checkbox" class="hover-btn-toggle" value="search" checked><span>Sök Fordon</span></label>
+                                    <label class="chip-toggle"><input type="checkbox" class="hover-btn-toggle" value="bu-scrape" checked><span>Sök Biluppgifter</span></label>
+                                    <label class="chip-toggle"><input type="checkbox" class="hover-btn-toggle" value="ci-direct" checked><span>Car.info direkt</span></label>
+                                    <label class="chip-toggle"><input type="checkbox" class="hover-btn-toggle" value="bu-direct" checked><span>Biluppgifter direkt</span></label>
+                                    <label class="chip-toggle" style="grid-column: span 2;"><input type="checkbox" class="hover-btn-toggle" value="porsche"><span>Porsche Service</span></label>
+                                </div>
+                            </div>
+
+                            <div class="setting-card-block">
+                                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                                    <span class="setting-main">Svartlistade domäner</span>
+                                    <button id="add-current-host-btn" type="button" class="action-mini-btn">+ Denna domän</button>
+                                </div>
+                                <input type="text" id="hover-blacklist-input" placeholder="t.ex. blocket.se, localhost" class="settings-text-input">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- FLIK 4: SYSTEM & VERKTYG -->
+                    <div id="set-pane-sys" class="set-tab-pane hidden">
                         <div class="setting-card">
                             <div class="setting-text">
                                 <span class="setting-main">Standardsökning</span>
@@ -260,41 +275,56 @@
                                 <option value="om">Oljemagasinet</option>
                             </select>
                         </div>
-                        <div class="setting-card">
-                            <div class="setting-text">
-                                <span class="setting-main">Gränssnittets storlek</span>
-                                <span class="setting-sub">Skala upp eller ner UI:t</span>
-                            </div>
-                            <select id="ui-scale-select" class="settings-select">
-                                <option value="0.9">Kompakt (90%)</option>
-                                <option value="1">Standard (100%)</option>
-                                <option value="1.15">Stor (115%)</option>
-                                <option value="1.3">Max (130%)</option>
-                            </select>
-                        </div>
-                        <div class="setting-card">
-                            <div class="setting-text">
-                                <span class="setting-main">Sparade fordon</span>
-                                <span class="setting-sub">Max antal fordon i historiklistan</span>
-                            </div>
-                            <select id="history-limit-select" class="settings-select">
-                                <option value="0">Inaktiverad (0)</option>
-                                <option value="5">5 fordon</option>
-                                <option value="10">10 fordon</option>
-                                <option value="25">25 fordon</option>
-                            </select>
-                        </div>
-                    </div>
 
-                    <div class="settings-group">
-                        <div class="settings-group-title">Uppdatering & Verktyg</div>
-                        <button id="switch-beta-btn" class="settings-action-btn secondary">
-                            <span>VÄXLA TILL BETA-UI</span>
-                        </button>
-                        <button id="download-update-btn" class="settings-action-btn primary" style="margin-top:8px;">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                            <span>LADDA NER SENASTE UPPDATERING</span>
-                        </button>
+                        <label class="setting-card">
+                            <div class="setting-text">
+                                <span class="setting-main">Autosök vid inmatning</span>
+                                <span class="setting-sub">Sök direkt när 6 tecken fyllts i</span>
+                            </div>
+                            <div class="toggle-switch"><input type="checkbox" id="toggle-autosearch" checked><div class="slider"></div></div>
+                        </label>
+
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
+                            <label class="setting-card" style="padding:10px 12px;">
+                                <span class="setting-main">Ljud</span>
+                                <div class="toggle-switch"><input type="checkbox" id="toggle-sound" checked><div class="slider"></div></div>
+                            </label>
+                            <label class="setting-card" style="padding:10px 12px;">
+                                <span class="setting-main">Molnsynk</span>
+                                <div class="toggle-switch"><input type="checkbox" id="toggle-cloud-sync" checked><div class="slider"></div></div>
+                            </label>
+                        </div>
+
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
+                            <div class="setting-card-block" style="padding:9px 12px;">
+                                <span class="setting-sub" style="display:block; margin-bottom:4px; font-weight:700;">UI-storlek</span>
+                                <select id="ui-scale-select" class="settings-select" style="width:100%;">
+                                    <option value="0.9">Kompakt (90%)</option>
+                                    <option value="1">Standard (100%)</option>
+                                    <option value="1.15">Stor (115%)</option>
+                                    <option value="1.3">Max (130%)</option>
+                                </select>
+                            </div>
+                            <div class="setting-card-block" style="padding:9px 12px;">
+                                <span class="setting-sub" style="display:block; margin-bottom:4px; font-weight:700;">Sparad historik</span>
+                                <select id="history-limit-select" class="settings-select" style="width:100%;">
+                                    <option value="0">Av (0)</option>
+                                    <option value="5">5 fordon</option>
+                                    <option value="10">10 fordon</option>
+                                    <option value="25">25 fordon</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-top:4px;">
+                            <button id="switch-beta-btn" class="settings-action-btn secondary" style="padding:10px 8px; font-size:10px;">
+                                <span>BETA-UI</span>
+                            </button>
+                            <button id="download-update-btn" class="settings-action-btn primary" style="padding:10px 8px; font-size:10px;">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                                <span>UPPDATERA</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
